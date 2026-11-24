@@ -1,0 +1,1781 @@
+<title>ScoutGest</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<!--
+  DESIGN PLAN — ScoutGest, tool di scouting calcistico
+  Layout: SPA con hash-routing (#home, #calciatori, #portieri, #match-analisi, #nuova-scheda, #cerca, #categorie, #contatti)
+  Palette: blu navy strutturale + giallo oro + bianco (richiesta cliente)
+  Colori:
+    --bg        grigio-bianco freddo / blu notte scuro
+    --surface   pannelli e card (bianco)
+    --fg        inchiostro navy
+    --muted     testo secondario
+    --pitch     blu accento primario
+    --pitch-deep navy profondo (header, score, pannelli scuri)
+    --gold      giallo oro (dettagli, stella del logo)
+    --line      bordi e griglie
+    --good/--warn/--bad  semantica valutazioni
+  Type:
+    display "Archivo" (800/900, corsivo per il wordmark → richiama il logo originale)
+    body   "Inter" (tabular-nums per statistiche e tabelle)
+-->
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Archivo:ital,wght@0,500;0,700;0,800;0,900;1,800;1,900&family=Inter:wght@400;500;600;700&display=swap');
+
+  :root{
+    --bg:#f5f7fa;
+    --surface:#ffffff;
+    --surface-2:#eef2f7;
+    --fg:#152238;
+    --muted:#5a6a82;
+    --pitch:#1a5cb0;
+    --pitch-deep:#10294d;
+    --gold:#c7920e;
+    --line:#d9dfe8;
+    --good:#2e7d43;
+    --warn:#b07708;
+    --bad:#b3402f;
+    --shadow:0 1px 2px rgba(21,34,56,.05),0 6px 20px rgba(21,34,56,.06);
+    color-scheme:light;
+  }
+  @media (prefers-color-scheme:dark){ :root:not([data-theme="light"]){
+    --bg:#0c1220;
+    --surface:#141d30;
+    --surface-2:#1b2740;
+    --fg:#e8edf6;
+    --muted:#94a2ba;
+    --pitch:#5b8fd9;
+    --pitch-deep:#0a1424;
+    --gold:#e0b64f;
+    --line:#283650;
+    --good:#5cbb77;
+    --warn:#d9a53f;
+    --bad:#e07a67;
+    --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px rgba(0,0,0,.35);
+    color-scheme:dark;
+  }}
+  :root[data-theme="dark"]{
+    --bg:#0c1220;
+    --surface:#141d30;
+    --surface-2:#1b2740;
+    --fg:#e8edf6;
+    --muted:#94a2ba;
+    --pitch:#5b8fd9;
+    --pitch-deep:#0a1424;
+    --gold:#e0b64f;
+    --line:#283650;
+    --good:#5cbb77;
+    --warn:#d9a53f;
+    --bad:#e07a67;
+    --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px rgba(0,0,0,.35);
+    color-scheme:dark;
+  }
+
+  *{box-sizing:border-box}
+  html{height:100%}
+  body{
+    margin:0;height:100%;
+    background:var(--bg);color:var(--fg);
+    font-family:'Inter',system-ui,-apple-system,sans-serif;
+    font-size:15px;line-height:1.55;
+    padding-left:max(16px,env(safe-area-inset-left,0px));
+    padding-right:max(16px,env(safe-area-inset-right,0px));
+    -webkit-font-smoothing:antialiased;
+  }
+  h1,h2,h3{font-family:'Archivo',sans-serif;text-wrap:balance;margin:0}
+  button{font:inherit;cursor:pointer}
+  a{color:inherit}
+  [hidden]{display:none!important}
+  :focus-visible{outline:2px solid var(--pitch);outline-offset:2px;border-radius:4px}
+
+  /* ---------- header ---------- */
+  body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:40;background:var(--pitch-deep)}
+  .topbar{
+    position:sticky;top:env(safe-area-inset-top,0px);z-index:30;
+    background:var(--pitch-deep);color:#ffffff;
+    margin:0 calc(-1 * max(16px,env(safe-area-inset-left,0px))) 0 calc(-1 * max(16px,env(safe-area-inset-right,0px)));
+    padding:0 max(16px,env(safe-area-inset-left,0px)) 0 max(16px,env(safe-area-inset-right,0px));
+  }
+  .topbar-in{
+    max-width:1080px;margin:0 auto;
+    display:flex;align-items:center;gap:16px;flex-wrap:wrap;
+    padding-block:10px 12px;
+  }
+  .wordmark{
+    font-family:'Archivo',sans-serif;font-weight:900;font-style:italic;
+    font-size:22px;letter-spacing:.5px;text-transform:uppercase;
+    display:flex;align-items:baseline;gap:2px;background:none;border:0;color:#ffffff;padding:0;
+  }
+  .wordmark .star{color:var(--gold);font-style:normal;font-size:14px;transform:translateY(-6px)}
+  .wordmark em{color:#8fb8e8}
+  .topnav{display:flex;gap:2px;flex-wrap:wrap;margin-left:auto}
+  .topnav a{
+    text-decoration:none;font-weight:600;font-size:13px;color:#b9c9e2;
+    padding:7px 11px;border-radius:7px;letter-spacing:.02em;
+  }
+  .topnav a:hover{background:rgba(255,255,255,.09);color:#fff}
+  .topnav a.active{background:rgba(255,255,255,.14);color:#fff}
+  .userchip{display:flex;align-items:center;gap:9px;font-size:13px;color:#b9c9e2}
+  .userchip .avatar{
+    width:28px;height:28px;border-radius:50%;background:var(--gold);color:#1c1503;
+    display:grid;place-items:center;font-weight:700;font-size:12px;
+  }
+  .userchip button{
+    background:none;border:1px solid rgba(255,255,255,.25);color:#b9c9e2;
+    border-radius:7px;padding:5px 10px;font-size:12.5px;font-weight:600;
+  }
+  .userchip button:hover{border-color:rgba(255,255,255,.5);color:#fff}
+
+  /* ---------- layout ---------- */
+  main{max-width:1080px;margin:0 auto;padding-block:28px 64px}
+  .view{animation:fade .25s ease}
+  @keyframes fade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+  @media (prefers-reduced-motion:reduce){.view{animation:none}}
+
+  .kicker{
+    font-size:11.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--pitch);display:flex;align-items:center;gap:8px;margin-bottom:6px;
+  }
+  .kicker::before{content:"";width:22px;height:2px;background:var(--gold)}
+  .view h1{font-size:clamp(26px,5vw,38px);font-weight:800;letter-spacing:-.01em}
+  .lede{color:var(--muted);max-width:56ch;margin:8px 0 0}
+
+  /* ---------- hero home ---------- */
+  .hero{
+    background:linear-gradient(140deg,var(--pitch-deep) 0%,#1c4585 100%);
+    color:#fff;border-radius:18px;padding:32px 30px 28px;
+    box-shadow:var(--shadow);position:relative;overflow:hidden;margin-top:8px;
+  }
+  .hero::after{
+    content:"";position:absolute;right:-70px;top:-70px;width:280px;height:280px;
+    background:radial-gradient(circle,rgba(224,182,79,.22),transparent 68%);border-radius:50%;
+  }
+  .hero::before{
+    content:"";position:absolute;right:40px;bottom:-40px;width:190px;height:190px;
+    background:radial-gradient(circle,rgba(255,255,255,.07),transparent 70%);border-radius:50%;
+  }
+  .hero>*{position:relative;z-index:1}
+  .hero-kicker{
+    display:inline-block;font-size:11.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--gold);border:1px solid color-mix(in srgb,var(--gold) 45%,transparent);
+    border-radius:99px;padding:4px 13px;margin-bottom:14px;
+  }
+  .hero h1{font-size:clamp(25px,4.5vw,38px);font-weight:800;letter-spacing:-.01em;color:#fff;max-width:24ch}
+  .hero h1 em{font-style:normal;color:var(--gold)}
+  .hero p{color:#c7d4ea;max-width:56ch;margin:10px 0 0;font-size:15px}
+  .hero-stats{
+    display:flex;gap:30px;flex-wrap:wrap;margin-top:24px;padding-top:18px;
+    border-top:1px solid rgba(255,255,255,.16);
+  }
+  .hero-stats b{
+    font-family:'Archivo',sans-serif;font-size:25px;font-weight:800;display:block;
+    color:#fff;font-variant-numeric:tabular-nums;line-height:1.15;
+  }
+  .hero-stats span{font-size:11.5px;color:#9fb4d6;text-transform:uppercase;letter-spacing:.08em;font-weight:600}
+
+  /* ---------- tiles illustrate ---------- */
+  .tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(235px,1fr));gap:16px;margin-top:22px}
+  .tile{
+    background:var(--surface);border:1px solid var(--line);border-radius:14px;
+    text-align:left;text-decoration:none;color:inherit;
+    display:flex;flex-direction:column;box-shadow:var(--shadow);
+    transition:transform .15s ease,border-color .15s ease,box-shadow .15s ease;
+    position:relative;overflow:hidden;
+  }
+  .tile:hover{transform:translateY(-3px);border-color:var(--pitch);box-shadow:0 4px 10px rgba(21,34,56,.08),0 16px 36px rgba(21,34,56,.13)}
+  .tile-art{
+    aspect-ratio:16/9;display:grid;place-items:center;position:relative;
+    background:linear-gradient(140deg,var(--pitch-deep) 0%,#1d4a8f 100%);
+  }
+  .tile-art::after{
+    content:"";position:absolute;inset:0;
+    background:radial-gradient(circle at 85% 12%,rgba(224,182,79,.20),transparent 55%);
+  }
+  .tile-art svg{
+    width:56%;height:auto;max-height:72%;position:relative;z-index:1;
+    stroke:#ffffff;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;
+    opacity:.95;transition:transform .2s ease;
+  }
+  .tile:hover .tile-art svg{transform:scale(1.06)}
+  .tile-count{
+    position:absolute;top:12px;right:12px;z-index:2;
+    font-size:12px;font-weight:700;color:#fff;
+    background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.28);
+    border-radius:99px;padding:2px 10px;font-variant-numeric:tabular-nums;
+  }
+  .tile-body{padding:15px 17px 17px;display:flex;flex-direction:column;gap:3px}
+  .tile-body b{font-family:'Archivo',sans-serif;font-size:15.5px;font-weight:800;text-transform:uppercase;letter-spacing:.05em}
+  .tile-body span{font-size:13px;color:var(--muted);line-height:1.45}
+  .tile-gold .tile-art{background:linear-gradient(140deg,#7a5a06 0%,var(--gold) 100%)}
+
+  /* ---------- tables / lists ---------- */
+  .panel{background:var(--surface);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);margin-top:24px;overflow:hidden}
+  .panel-head{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:16px 18px;border-bottom:1px solid var(--line)}
+  .panel-head h2{font-size:17px;font-weight:800;text-transform:uppercase;letter-spacing:.04em}
+  .panel-head .spacer{margin-left:auto}
+  .scroll-x{overflow-x:auto}
+  table{border-collapse:collapse;width:100%;font-size:14px}
+  th{
+    text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.1em;
+    color:var(--muted);font-weight:700;padding:10px 14px;border-bottom:1px solid var(--line);
+    white-space:nowrap;background:var(--surface-2);
+  }
+  td{padding:11px 14px;border-bottom:1px solid var(--line);white-space:nowrap;font-variant-numeric:tabular-nums}
+  tr:last-child td{border-bottom:0}
+  tbody tr:hover td{background:color-mix(in srgb,var(--pitch) 5%,transparent)}
+  td.name-cell{font-weight:600}
+  .sub{display:block;font-size:12px;color:var(--muted);font-weight:400}
+
+  .role-tag{
+    display:inline-block;font-size:11.5px;font-weight:700;letter-spacing:.05em;
+    padding:2.5px 9px;border-radius:99px;background:var(--surface-2);color:var(--muted);
+  }
+  .role-tag.P{background:color-mix(in srgb,var(--gold) 16%,transparent);color:var(--gold)}
+  .role-tag.DC,.role-tag.DD,.role-tag.DS{background:color-mix(in srgb,#64748b 16%,transparent);color:#64748b}
+  .role-tag.CC,.role-tag.T{background:color-mix(in srgb,var(--pitch) 14%,transparent);color:var(--pitch)}
+  .role-tag.AD,.role-tag.PC{background:color-mix(in srgb,var(--bad) 14%,transparent);color:var(--bad)}
+  :root[data-theme="dark"] .role-tag.DC,:root[data-theme="dark"] .role-tag.DD,:root[data-theme="dark"] .role-tag.DS{color:#9aa8bd}
+  :root[data-theme="dark"] .role-tag.CC,:root[data-theme="dark"] .role-tag.T{color:#7dabec}
+
+  .ovr{
+    display:inline-grid;place-items:center;width:38px;height:38px;border-radius:10px;
+    font-weight:800;font-size:15px;font-variant-numeric:tabular-nums;
+    background:var(--surface-2);color:var(--fg);
+  }
+  .ovr.hi{background:color-mix(in srgb,var(--good) 18%,transparent);color:var(--good)}
+  .ovr.mid{background:color-mix(in srgb,var(--warn) 18%,transparent);color:var(--warn)}
+  .ovr.lo{background:color-mix(in srgb,var(--bad) 15%,transparent);color:var(--bad)}
+
+  /* ---------- player detail ---------- */
+  .attr-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;padding:16px 18px}
+  .attr{background:var(--surface-2);border-radius:10px;padding:10px 12px}
+  .attr label{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:700;margin-bottom:6px}
+  .meter{height:6px;border-radius:99px;background:var(--line);overflow:hidden}
+  .meter i{display:block;height:100%;border-radius:99px;background:var(--pitch)}
+  .attr b{font-size:14px;font-variant-numeric:tabular-nums}
+
+  /* ---------- match analysis ---------- */
+  .scoreline{display:flex;align-items:center;justify-content:center;gap:22px;padding:30px 18px 8px;text-align:center}
+  .scoreline .team{font-family:'Archivo',sans-serif;font-weight:800;font-size:clamp(15px,3vw,20px);text-transform:uppercase;letter-spacing:.03em;max-width:180px}
+  .scoreline .score{
+    font-family:'Archivo',sans-serif;font-weight:900;font-size:clamp(40px,9vw,64px);
+    font-variant-numeric:tabular-nums;letter-spacing:.02em;
+    background:var(--pitch-deep);color:#ffffff;border-radius:14px;padding:2px 22px;
+  }
+  .scoreline .meta{width:100%;text-align:center;color:var(--muted);font-size:13px;padding-bottom:14px}
+  .timeline{list-style:none;margin:0;padding:8px 18px 18px}
+  .timeline li{
+    display:flex;gap:14px;align-items:baseline;padding:9px 0;border-bottom:1px dashed var(--line);
+    font-size:14px;
+  }
+  .timeline li:last-child{border-bottom:0}
+  .timeline .min{
+    font-weight:800;font-variant-numeric:tabular-nums;color:var(--pitch);
+    min-width:34px;font-size:13px;
+  }
+  .timeline .ev-tag{
+    font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;
+    border-radius:99px;padding:2px 8px;background:var(--surface-2);color:var(--muted);
+  }
+  .timeline .ev-tag.goal{background:color-mix(in srgb,var(--good) 16%,transparent);color:var(--good)}
+  .timeline .ev-tag.card{background:color-mix(in srgb,var(--bad) 14%,transparent);color:var(--bad)}
+  .timeline .who{font-weight:600}
+
+  /* ---------- search ---------- */
+  .searchbar{display:flex;gap:10px;flex-wrap:wrap;margin-top:22px}
+  .searchbar input,.searchbar select{
+    font:inherit;color:var(--fg);background:var(--surface);border:1px solid var(--line);
+    border-radius:10px;padding:10px 14px;box-shadow:var(--shadow);
+  }
+  .searchbar input{flex:1 1 220px;min-width:0}
+  .searchbar select{flex:0 0 auto}
+  .empty{padding:34px 18px;text-align:center;color:var(--muted)}
+
+  /* ---------- categorie ---------- */
+  .cat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px;margin-top:24px}
+  .cat{
+    background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px;
+    box-shadow:var(--shadow);display:flex;flex-direction:column;gap:6px;
+  }
+  .cat .anno{font-size:11.5px;font-weight:700;letter-spacing:.1em;color:var(--gold);text-transform:uppercase}
+  .cat b{font-family:'Archivo',sans-serif;font-size:18px;font-weight:800}
+  .cat span{font-size:13px;color:var(--muted)}
+
+  /* ---------- contatti ---------- */
+  .contact-wrap{display:grid;grid-template-columns:1.2fr .8fr;gap:14px;margin-top:24px}
+  @media (max-width:720px){.contact-wrap{grid-template-columns:1fr}}
+  form.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);padding:20px}
+  .field{margin-bottom:14px}
+  .field label{display:block;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:6px}
+  .field input,.field textarea{
+    width:100%;font:inherit;color:var(--fg);background:var(--bg);
+    border:1px solid var(--line);border-radius:9px;padding:10px 12px;
+  }
+  .field textarea{min-height:110px;resize:vertical}
+  .btn{
+    background:var(--pitch);color:#ffffff;border:0;border-radius:10px;
+    padding:11px 22px;font-weight:700;font-size:14.5px;
+  }
+  .btn:hover{background:var(--pitch-deep)}
+  :root[data-theme="dark"] .btn,:root:not([data-theme="light"]) .btn{color:#0a1424}
+  :root[data-theme="dark"] .btn:hover,:root:not([data-theme="light"]) .btn:hover{background:var(--pitch)}
+  .toast{
+    margin-top:12px;background:color-mix(in srgb,var(--good) 14%,transparent);color:var(--good);
+    border-radius:9px;padding:10px 14px;font-size:13.5px;font-weight:600;
+  }
+  .aside-card{background:var(--pitch-deep);color:#d5dfef;border-radius:14px;padding:22px;box-shadow:var(--shadow)}
+  .aside-card h3{color:#fff;font-size:16px;text-transform:uppercase;letter-spacing:.05em;margin-bottom:12px}
+  .aside-card a{color:#8fb8e8;font-weight:600;text-decoration:none}
+  .aside-card a:hover{text-decoration:underline}
+  .socials{display:flex;gap:10px;margin-top:16px}
+  .socials a{
+    width:38px;height:38px;border-radius:10px;display:grid;place-items:center;
+    background:rgba(255,255,255,.1);
+  }
+  .socials a:hover{background:rgba(255,255,255,.2)}
+  .socials svg{width:18px;height:18px;fill:#e8edf6}
+
+  /* ---------- login ---------- */
+  .login{
+    min-height:calc(100vh - 60px);display:grid;place-items:center;padding-block:40px;
+  }
+  .login-card{width:min(400px,100%);background:var(--surface);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow);padding:34px 30px}
+  .login-card .wordmark{color:var(--fg);font-size:30px;justify-content:center;display:flex;margin-bottom:4px}
+  .login-card .wordmark em{color:var(--pitch)}
+  .login-card p{text-align:center;color:var(--muted);margin:0 0 24px;font-size:13.5px}
+  .login-card .btn{width:100%}
+  .demo-note{margin-top:14px;font-size:12px;color:var(--muted);text-align:center}
+
+  /* ---------- scheda di valutazione ---------- */
+  .scheda-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px;padding:18px}
+  .fg-field label{
+    display:block;font-size:11.5px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;
+    color:var(--muted);margin-bottom:6px;
+  }
+  .fg-field input,.fg-field select{
+    width:100%;font:inherit;color:var(--fg);background:var(--bg);
+    border:1px solid var(--line);border-radius:9px;padding:9px 12px;
+  }
+  .fg-field input:focus,.fg-field select:focus{border-color:var(--pitch);outline:none}
+  .fg-field.wide,.fg-wide{grid-column:1/-1}
+
+  .seg{display:inline-flex;border:1px solid var(--line);border-radius:9px;overflow:hidden;background:var(--surface-2)}
+  .seg button{
+    border:0;background:transparent;padding:7px 13px;font-size:13px;font-weight:600;
+    color:var(--muted);border-right:1px solid var(--line);white-space:nowrap;
+  }
+  .seg button:last-child{border-right:0}
+  .seg button:hover{color:var(--fg)}
+  .seg button.on{background:var(--pitch);color:#ffffff}
+  :root[data-theme="dark"] .seg button.on,:root:not([data-theme="light"]) .seg button.on{color:#0a1424}
+
+  .tech-list{padding:6px 18px 16px}
+  .tech-row{
+    display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;
+    padding:9px 0;border-bottom:1px dashed var(--line);
+  }
+  .tech-row:last-child{border-bottom:0}
+  .tech-row>span{font-weight:600;font-size:14.5px}
+
+  .chiprow{display:flex;gap:8px;flex-wrap:wrap}
+  .chip{
+    border:1px solid var(--line);background:var(--surface);border-radius:99px;
+    padding:6px 14px;font-size:13px;font-weight:600;color:var(--muted);
+  }
+  .chip:hover{color:var(--fg)}
+  .chip.on{border-color:var(--pitch);background:color-mix(in srgb,var(--pitch) 12%,transparent);color:var(--pitch)}
+  .field-label{
+    font-size:11.5px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;
+    color:var(--muted);margin:14px 0 8px;
+  }
+  .field-label:first-child{margin-top:0}
+
+  .soma-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:8px}
+  @media (max-width:560px){.soma-cards{grid-template-columns:1fr 1fr 1fr}}
+  .soma{
+    border:1px solid var(--line);border-radius:12px;background:var(--surface);
+    padding:14px 10px 12px;text-align:center;cursor:pointer;
+    display:flex;flex-direction:column;align-items:center;gap:6px;
+  }
+  .soma:hover{border-color:var(--pitch)}
+  .soma.on{border-color:var(--pitch);box-shadow:inset 0 0 0 1.5px var(--pitch);background:color-mix(in srgb,var(--pitch) 6%,transparent)}
+  .soma svg{height:66px;stroke:var(--muted);fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+  .soma.on svg{stroke:var(--pitch)}
+  .soma b{font-size:13.5px}
+  .soma small{font-size:11.5px;color:var(--muted)}
+
+  .check-list{list-style:none;margin:0;padding:6px 0}
+  .check-list li{
+    display:flex;align-items:center;justify-content:space-between;gap:12px;
+    padding:10px 18px;border-bottom:1px solid var(--line);font-size:14px;cursor:pointer;
+  }
+  .check-list li:last-child{border-bottom:0}
+  .check-list li:hover{background:color-mix(in srgb,var(--pitch) 5%,transparent)}
+  .check-list b{font-weight:600}
+  .check-list .sub{display:inline}
+
+  /* ---------- archivio schede ---------- */
+  .scheda-list{list-style:none;margin:0;padding:0}
+  .scheda-item{
+    display:flex;align-items:center;gap:14px;padding:13px 18px;
+    border-bottom:1px solid var(--line);cursor:pointer;flex-wrap:wrap;
+  }
+  .scheda-item:last-child{border-bottom:0}
+  .scheda-item:hover{background:color-mix(in srgb,var(--pitch) 5%,transparent)}
+  .scheda-item .who{font-weight:700;font-size:15px}
+  .scheda-item .meta{font-size:12.5px;color:var(--muted);font-variant-numeric:tabular-nums}
+  .scheda-item .grow{flex:1;min-width:0}
+  .verdict-chip{
+    display:inline-block;font-size:11.5px;font-weight:700;letter-spacing:.04em;
+    padding:3px 11px;border-radius:99px;text-transform:uppercase;
+  }
+  .verdict-chip.acquistare{background:color-mix(in srgb,var(--good) 16%,transparent);color:var(--good)}
+  .verdict-chip.provare{background:color-mix(in srgb,var(--pitch) 14%,transparent);color:var(--pitch)}
+  .verdict-chip.seguire{background:color-mix(in srgb,var(--gold) 16%,transparent);color:var(--gold)}
+  .verdict-chip.idoneo{background:color-mix(in srgb,var(--bad) 14%,transparent);color:var(--bad)}
+  .verdict-chip.nessuno{background:var(--surface-2);color:var(--muted)}
+
+  .scheda-detail{padding:18px}
+  .scheda-detail h3{font-size:16px;margin-bottom:4px}
+  .scheda-detail .sub{margin-bottom:14px}
+  .votes-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:8px;margin:12px 0}
+  .vote-cell{background:var(--surface-2);border-radius:8px;padding:8px 11px;font-size:13px;display:flex;justify-content:space-between;gap:8px}
+  .vote-cell b{font-variant-numeric:tabular-nums}
+  .vote-cell .v1{color:var(--bad)}.vote-cell .v2{color:var(--warn)}
+  .vote-cell .v3{color:var(--pitch)}.vote-cell .v4{color:var(--good)}
+  .detail-note{
+    background:var(--surface-2);border-radius:10px;padding:12px 14px;font-size:14px;
+    white-space:pre-wrap;margin:10px 0;
+  }
+
+  /* ---------- gestione categorie ---------- */
+  .add-row{display:flex;gap:10px;padding:16px 18px}
+  .add-row input{flex:1;min-width:0;font:inherit;color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:9px;padding:10px 14px}
+  .add-row input:focus{border-color:var(--pitch);outline:none}
+  .add-row .btn{padding:10px 18px}
+  .cat-list{list-style:none;margin:0;padding:0}
+  .cat-row{
+    display:flex;align-items:center;gap:12px;
+    padding:9px 18px;border-bottom:1px solid var(--line);
+  }
+  .cat-row:last-child{border-bottom:0}
+  .cat-row .cat-name{flex:1;min-width:0;font-weight:600;font-size:14.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .cat-row input{
+    flex:1;min-width:0;font:inherit;font-weight:600;color:var(--fg);
+    background:var(--bg);border:1px solid var(--pitch);border-radius:8px;padding:7px 12px;
+  }
+  .icon-btn{
+    width:34px;height:34px;border-radius:9px;border:1px solid var(--line);
+    background:var(--surface-2);display:grid;place-items:center;flex:0 0 auto;
+    transition:border-color .12s ease,color .12s ease;color:var(--muted);
+  }
+  .icon-btn svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+  .icon-btn:hover{border-color:var(--pitch);color:var(--pitch)}
+  .icon-btn.danger:hover{border-color:var(--bad);color:var(--bad)}
+  .icon-btn.save{border-color:var(--pitch);color:var(--pitch)}
+
+  /* ---------- footer ---------- */
+  footer{
+    border-top:1px solid var(--line);margin-top:40px;
+    padding-block:22px;text-align:center;color:var(--muted);font-size:13px;
+  }
+  footer b{font-family:'Archivo',sans-serif;font-style:italic;font-weight:800;color:var(--fg)}
+</style>
+</head><body>
+
+<header class="topbar" id="topbar" hidden>
+  <div class="topbar-in">
+    <button class="wordmark" data-nav="home" aria-label="ScoutGest home">Scout<span class="star">★</span><em>Gest</em></button>
+    <nav class="topnav" id="topnav">
+      <a href="#calciatori" data-nav="calciatori">Calciatori</a>
+      <a href="#portieri" data-nav="portieri">Portieri</a>
+      <a href="#match-analisi" data-nav="match-analisi">Match Analisi</a>
+      <a href="#nuova-scheda" data-nav="nuova-scheda">Nuova Scheda</a>
+      <a href="#schede" data-nav="schede">Schede</a>
+      <a href="#cerca" data-nav="cerca">Cerca</a>
+      <a href="#categorie" data-nav="categorie">Categorie</a>
+      <a href="#contatti" data-nav="contatti">Contatti</a>
+    </nav>
+    <div class="userchip">
+      <span class="avatar" aria-hidden="true">ML</span>
+      <span>M. Lazzeri</span>
+      <button id="logoutBtn">Esci</button>
+    </div>
+  </div>
+</header>
+
+<!-- ============ LOGIN ============ -->
+<section class="view login" id="view-login" hidden>
+  <div class="login-card">
+    <div class="wordmark">Scout<span class="star">★</span><em>Gest</em></div>
+    <p>Piattaforma di scouting calcistico</p>
+    <form id="loginForm">
+      <div class="field">
+        <label for="luser">Utente</label>
+        <input id="luser" type="text" autocomplete="username" value="marco.lazzeri">
+      </div>
+      <div class="field">
+        <label for="lpass">Password</label>
+        <input id="lpass" type="password" autocomplete="current-password" value="demo1234">
+      </div>
+      <button class="btn" type="submit">Accedi</button>
+    </form>
+    <p class="demo-note">Demo: credenziali precompilate, premi Accedi per entrare.</p>
+  </div>
+</section>
+
+<main id="app" hidden>
+
+  <!-- ============ HOME ============ -->
+  <section class="view" id="view-home" hidden>
+    <div class="hero">
+      <span class="hero-kicker">Piattaforma di scouting</span>
+      <h1>Il giocatore giusto, <em>trovato prima</em>.</h1>
+      <p>Movlista aggiornata, relazioni di partita standardizzate e valutazioni comparabili su tutte le categorie — dal Pulcini alla Prima Squadra.</p>
+      <div class="hero-stats">
+        <div><b id="hsPlayers">–</b><span>Giocatori in movlista</span></div>
+        <div><b id="hsGk">–</b><span>Portieri seguiti</span></div>
+        <div><b id="hsMatches">–</b><span>Partite analizzate</span></div>
+        <div><b id="hsCats">–</b><span>Categorie attive</span></div>
+      </div>
+    </div>
+
+    <div class="tiles">
+      <a class="tile" href="#nuova-scheda">
+        <span class="tile-art">
+          <svg viewBox="0 0 120 68">
+            <rect x="10" y="8" width="76" height="52" rx="6"/>
+            <path d="M18 20h50M18 30h38M18 40h46M18 50h30" opacity=".45"/>
+            <circle cx="88" cy="34" r="15"/>
+            <path d="M88 27l5 4-2 6h-6l-2-6z" fill="#ffffff" stroke="none"/>
+            <path d="M97 50l7 7M104 57l6-6" opacity=".8"/>
+          </svg>
+        </span>
+        <span class="tile-count" data-count="schede">–</span>
+        <span class="tile-body"><b>Nuova Scheda</b><span>Compila una relazione di valutazione completa su un giocatore</span></span>
+      </a>
+      <a class="tile" href="#schede">
+        <span class="tile-art">
+          <svg viewBox="0 0 120 68">
+            <rect x="26" y="8" width="56" height="52" rx="5"/>
+            <path d="M34 20h40M34 28h32M34 36h38M34 44h24" opacity=".55"/>
+            <path d="M88 52l6 6M104 42l-10 10 4 4 10-10z" opacity=".9"/>
+            <circle cx="86" cy="54" r="3" fill="#ffffff" stroke="none"/>
+          </svg>
+        </span>
+        <span class="tile-count" data-count="schede">–</span>
+        <span class="tile-body"><b>Schede</b><span>L'archivio delle relazioni compilate, con verdetto e data</span></span>
+      </a>
+      <a class="tile" href="#calciatori">
+        <span class="tile-art">
+          <svg viewBox="0 0 120 68">
+            <rect x="8" y="6" width="104" height="56" rx="3"/>
+            <path d="M60 6v56M8 22h14v24H8M112 22H98v24h14"/>
+            <circle cx="60" cy="34" r="8"/>
+            <circle cx="34" cy="18" r="2.4" fill="#ffffff" stroke="none"/>
+            <circle cx="30" cy="40" r="2.4" fill="#ffffff" stroke="none"/>
+            <circle cx="46" cy="30" r="2.4" fill="#ffffff" stroke="none"/>
+            <circle cx="82" cy="24" r="2.4" fill="#ffffff" stroke="none"/>
+            <circle cx="90" cy="44" r="2.4" fill="#ffffff" stroke="none"/>
+            <circle cx="76" cy="38" r="2.4" fill="#ffffff" stroke="none"/>
+          </svg>
+        </span>
+        <span class="tile-count" data-count="calciatori">–</span>
+        <span class="tile-body"><b>Calciatori</b><span>La movlista dei giocatori seguiti dalla rete, con schede e rating</span></span>
+      </a>
+      <a class="tile" href="#portieri">
+        <span class="tile-art">
+          <svg viewBox="0 0 120 68">
+            <rect x="20" y="10" width="80" height="44" rx="2"/>
+            <path d="M20 10l16 12M40 10L56 22M60 10l16 12M80 10l16 12M100 10L84 22M100 54L84 42M20 54l16-12M40 54L56 42M60 54l16-12M80 54l16-12" opacity=".55"/>
+            <circle cx="30" cy="52" r="3.2" fill="#ffffff" stroke="none"/>
+            <path d="M42 52c8-14 28-14 36 0" opacity=".9"/>
+          </svg>
+        </span>
+        <span class="tile-count" data-count="portieri">–</span>
+        <span class="tile-body"><b>Portieri</b><span>Riflessi, tuffo, uscite e costruzione: il reparto più difficile da valutare</span></span>
+      </a>
+      <a class="tile" href="#match-analisi">
+        <span class="tile-art">
+          <svg viewBox="0 0 120 68">
+            <rect x="8" y="6" width="104" height="56" rx="3"/>
+            <path d="M8 34h104M60 6v56"/>
+            <path d="M8 20h16v28H8M112 20H96v28h16"/>
+            <circle cx="60" cy="34" r="9"/>
+            <circle cx="86" cy="22" r="2.6" fill="#ffffff" stroke="none"/>
+            <path d="M86 22L64 30M86 22l14 8" opacity=".7"/>
+            <path d="M30 50l10-6M44 54l8-8" opacity=".5"/>
+          </svg>
+        </span>
+        <span class="tile-count" data-count="partite">–</span>
+        <span class="tile-body"><b>Match Analisi</b><span>Relazioni post-partita con cronaca, eventi e nota dello scout</span></span>
+      </a>
+      <a class="tile" href="#cerca">
+        <span class="tile-art">
+          <svg viewBox="0 0 120 68">
+            <circle cx="52" cy="30" r="19"/>
+            <path d="M66 44l22 16"/>
+            <path d="M44 30h16M52 22v16" opacity=".6"/>
+            <path d="M92 14v10M87 19h10" opacity=".8"/>
+          </svg>
+        </span>
+        <span class="tile-count" data-count="filtri">–</span>
+        <span class="tile-body"><b>Cerca</b><span>Trova giocatori per ruolo, piede, annata, altezza e rating</span></span>
+      </a>
+      <a class="tile" href="#categorie">
+        <span class="tile-art">
+          <svg viewBox="0 0 120 68">
+            <rect x="14" y="8" width="92" height="14" rx="3"/>
+            <rect x="14" y="27" width="92" height="14" rx="3"/>
+            <rect x="14" y="46" width="66" height="14" rx="3"/>
+            <path d="M22 15h20M22 34h28M22 53h18" opacity=".6"/>
+            <circle cx="97" cy="53" r="8"/>
+            <path d="M94 53l2.5 2.5L101 51" opacity=".9"/>
+          </svg>
+        </span>
+        <span class="tile-count" data-count="categorie">–</span>
+        <span class="tile-body"><b>Categorie</b><span>Dai Pulcini alla Prima Squadra: gestisci le competizioni monitorate</span></span>
+      </a>
+      <a class="tile" href="#contatti">
+        <span class="tile-art">
+          <svg viewBox="0 0 120 68">
+            <rect x="22" y="10" width="76" height="48" rx="5"/>
+            <path d="M22 16l38 26 38-26" opacity=".7"/>
+            <circle cx="92" cy="50" r="11"/>
+            <path d="M87 50l3.5 3.5L97 46" opacity=".9"/>
+          </svg>
+        </span>
+        <span class="tile-count" data-count="referenti">–</span>
+        <span class="tile-body"><b>Contatti</b><span>La rubrica di DS, team manager e osservatori delle società</span></span>
+      </a>
+    </div>
+  </section>
+
+  <!-- ============ CALCIATORI ============ -->
+  <section class="view" id="view-calciatori" hidden>
+    <p class="kicker">Movlista</p>
+    <h1>Calciatori</h1>
+    <p class="lede">I giocatori seguiti dalla rete di scout. Clicca su una riga per aprire la scheda tecnica.</p>
+    <div class="panel">
+      <div class="panel-head"><h2>Movlista 2026/27</h2><span class="spacer"></span><span style="font-size:13px;color:var(--muted)" id="cCount"></span></div>
+      <div class="scroll-x">
+        <table>
+          <thead><tr><th>Giocatore</th><th>Ruolo</th><th>Età</th><th>Categoria</th><th>Squadra</th><th style="text-align:center">OVR</th></tr></thead>
+          <tbody id="cBody"></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="panel" id="playerCard" hidden>
+      <div class="panel-head"><h2 id="pcName"></h2><span class="spacer"></span><span class="ovr" id="pcOvr"></span></div>
+      <div class="attr-grid" id="pcAttrs"></div>
+    </div>
+  </section>
+
+  <!-- ============ PORTIERI ============ -->
+  <section class="view" id="view-portieri" hidden>
+    <p class="kicker">Tra i pali</p>
+    <h1>Portieri</h1>
+    <p class="lede">Valutazioni specifiche per il reparto: riflessi, tuffo, gioco aereo e costruzione dal basso.</p>
+    <div class="panel">
+      <div class="panel-head"><h2>Report portieri</h2></div>
+      <div class="scroll-x">
+        <table>
+          <thead><tr><th>Portiere</th><th>Età</th><th>Categoria</th><th>Riflessi</th><th>Tuffo</th><th>Palle alte</th><th>Piedi</th><th style="text-align:center">OVR</th></tr></thead>
+          <tbody id="gkBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ MATCH ANALISI ============ -->
+  <section class="view" id="view-match-analisi" hidden>
+    <p class="kicker">Relazione post-partita</p>
+    <h1>Match Analisi</h1>
+    <p class="lede">Cerca le partite osservate, filtra gli atleti e apri la relazione completa.</p>
+
+    <div class="panel">
+      <div class="panel-head"><h2>Cerca partite</h2></div>
+      <div class="scheda-grid" style="padding-bottom:16px">
+        <div class="fg-field"><label for="mData">Data</label><input id="mData" type="date"></div>
+        <div class="fg-field"><label for="mCat">Categoria</label>
+          <select id="mCat"><option value="">Tutte</option><option>Serie A</option><option>Serie B</option><option>Serie C</option><option>Serie D</option><option>Primavera</option><option>U17</option></select>
+        </div>
+        <div class="fg-field"><label for="mSoc">Società</label><input id="mSoc" type="text" placeholder="Es. Renato Curi"></div>
+        <div class="fg-field"><label for="mTipo">Tipo competizione</label>
+          <div class="seg" id="segTipo" role="group" aria-label="Tipo competizione" style="width:100%;display:flex">
+            <button type="button" style="flex:1">Campionato</button>
+            <button type="button" style="flex:1">Torneo</button>
+            <button type="button" style="flex:1">Amichevole</button>
+          </div>
+        </div>
+      </div>
+      <div class="scroll-x">
+        <table>
+          <thead><tr><th>Data</th><th>Competizione</th><th>Società</th><th>Avversario</th><th style="text-align:center">Risultato</th></tr></thead>
+          <tbody id="mBody"></tbody>
+        </table>
+      </div>
+      <div class="empty" id="mEmpty" hidden>Nessuna partita corrisponde ai filtri.</div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head"><h2>Cerca atleti</h2></div>
+      <div class="scheda-grid">
+        <div class="fg-field"><label for="aRuolo">Ruolo</label>
+          <select id="aRuolo"><option value="">Tutti</option><option>Portiere</option><option>Difensore</option><option>Centrocampista</option><option>Trequartista</option><option>Ala</option><option>Punta centrale</option></select>
+        </div>
+        <div class="fg-field"><label for="aPiede">Piede</label>
+          <select id="aPiede"><option value="">Tutti</option><option>Destro</option><option>Sinistro</option><option>Ambidestro</option></select>
+        </div>
+        <div class="fg-field"><label for="aVal">Valutazione minima</label>
+          <select id="aVal"><option value="0">Qualsiasi</option><option value="70">70+</option><option value="75">75+</option><option value="80">80+</option></select>
+        </div>
+        <div class="fg-field"><label for="aAnnata">Annata (anno nascita)</label><input id="aAnnata" type="number" placeholder="Es. 2004"></div>
+        <div class="fg-field"><label for="aCat">Categoria</label>
+          <select id="aCat"><option value="">Tutte</option><option>Serie A</option><option>Serie B</option><option>Serie C</option><option>Serie D</option><option>Primavera</option><option>U20</option><option>U17</option></select>
+        </div>
+        <div class="fg-field"><label>Altezza</label>
+          <div style="display:flex;gap:8px;align-items:center">
+            <input id="aAltMin" type="number" step="0.01" placeholder="Da" style="width:100%;font:inherit;color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:9px;padding:9px 12px">
+            <span style="color:var(--muted)">–</span>
+            <input id="aAltMax" type="number" step="0.01" placeholder="A" style="width:100%;font:inherit;color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:9px;padding:9px 12px">
+          </div>
+        </div>
+      </div>
+      <div class="scroll-x">
+        <table>
+          <thead><tr><th>Atleta</th><th>Ruolo</th><th>Piede</th><th>Annata</th><th>Altezza</th><th>Categoria</th><th>Società</th><th style="text-align:center">OVR</th></tr></thead>
+          <tbody id="aBody"></tbody>
+        </table>
+      </div>
+      <div class="empty" id="aEmpty" hidden>Nessun atleta corrisponde ai filtri.</div>
+    </div>
+
+    <div class="panel">
+      <div class="scoreline">
+        <span class="team">Renato Curi Angolana</span>
+        <span class="score">2–1</span>
+        <span class="team">Vis Artena</span>
+      </div>
+      <p class="meta">Serie D — Girone F · 9ª giornata · Stadio Rubens Fadini · 16 nov 2026</p>
+      <div class="panel-head" style="border-top:1px solid var(--line)"><h2>Cronaca</h2><span class="spacer"></span><span style="font-size:13px;color:var(--muted)">Osservatore: M. Lazzeri</span></div>
+      <ul class="timeline" id="tlList"></ul>
+    </div>
+    <div class="panel">
+      <div class="panel-head"><h2>Nota dello scout</h2></div>
+      <p style="padding:16px 18px;margin:0;max-width:70ch">
+        Partita discreta, ritmo basso nella frazione centrale. L'esterno della Renato Curi
+        (Segre, 2004) ha creato tre occasioni da gol su palla inattiva e si è confermato
+        il miglior in campo: da monitorare per i 90 minuti. Da segnalare il trequartista della
+        Vis Artena, generoso ma poco lucido nell'ultimo terzo.
+      </p>
+    </div>
+  </section>
+
+  <!-- ============ NUOVA SCHEDA ============ -->
+  <section class="view" id="view-nuova-scheda" hidden>
+    <p class="kicker">Relazione di osservazione</p>
+    <h1>Nuova Scheda</h1>
+    <p class="lede">Compila la scheda di valutazione: dati anagrafici, note fisiche, morfologia e capacità tecniche.</p>
+
+    <div class="panel">
+      <div class="panel-head"><h2>Dati generali</h2></div>
+      <div class="scheda-grid">
+        <div class="fg-field"><label for="sOss">Osservatore</label><input id="sOss" type="text" value="Massimo Billi"></div>
+        <div class="fg-field"><label for="sData">Data</label><input id="sData" type="date"></div>
+        <div class="fg-field"><label for="sPartita">Partita</label>
+          <select id="sPartita"><option value="">— seleziona —</option><option>Renato Curi Angolana – Vis Artena</option><option>Pescara – Pineto</option><option>SS Monopoli – Catanzaro</option></select>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head"><h2>Dati identificativi atleta</h2></div>
+      <div class="scheda-grid">
+        <div class="fg-field"><label for="sCognome">Cognome</label><input id="sCognome" type="text" placeholder="Es. Rossi"></div>
+        <div class="fg-field"><label for="sNome">Nome</label><input id="sNome" type="text" placeholder="Es. Mario"></div>
+        <div class="fg-field"><label for="sNaz">Nazionalità</label><input id="sNaz" type="text" placeholder="Italiana"></div>
+        <div class="fg-field"><label for="sNatoA">Nato a</label><input id="sNatoA" type="text"></div>
+        <div class="fg-field"><label for="sNatoIl">Nato il</label><input id="sNatoIl" type="date"></div>
+        <div class="fg-field"><label for="sAnno">Anno</label><input id="sAnno" type="number" min="1990" max="2020" placeholder="2005"></div>
+        <div class="fg-field"><label for="sCat">Categoria</label>
+          <select id="sCat"><option value="">—</option><option>Serie A</option><option>Serie B</option><option>Serie C</option><option>Serie D</option><option>Primavera</option><option>U17</option><option>U15</option></select>
+        </div>
+        <div class="fg-field"><label for="sSocieta">Società</label><input id="sSocieta" type="text"></div>
+        <div class="fg-field"><label for="sRuolo">Ruolo</label>
+          <select id="sRuolo"><option value="">—</option><option>Portiere</option><option>Difensore</option><option>Centrocampista</option><option>Trequartista</option><option>Ala</option><option>Punta centrale</option></select>
+        </div>
+        <div class="fg-field"><label for="sPiede">Piede</label>
+          <select id="sPiede"><option value="">—</option><option>Destro</option><option>Sinistro</option><option>Ambidestro</option></select>
+        </div>
+        <div class="fg-field"><label for="sAgenzia">Nome agenzia</label><input id="sAgenzia" type="text"></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head"><h2>Note fisiche e morfologiche</h2></div>
+      <div class="scheda-grid" style="padding-bottom:0">
+        <div class="fg-field"><label for="sAltezza">Altezza (m)</label><input id="sAltezza" type="number" step="0.01" min="1.40" max="2.20" placeholder="1,80"></div>
+        <div class="fg-field"><label for="sPeso">Peso (kg)</label><input id="sPeso" type="number" min="40" max="130" placeholder="75"></div>
+        <div class="fg-field" style="align-self:end"><span class="field-label">Baricentro</span>
+          <div class="seg" id="segBaricentro" role="group" aria-label="Baricentro">
+            <button type="button">Basso</button><button type="button">Medio</button><button type="button">Alto</button>
+          </div>
+        </div>
+      </div>
+      <div style="padding:4px 18px 18px">
+        <span class="field-label">Somatotipo</span>
+        <div class="soma-cards" id="somaCards" role="group" aria-label="Somatotipo">
+          <div class="soma" tabindex="0" role="button" data-soma="ecto">
+            <svg viewBox="0 0 40 100"><circle cx="20" cy="12" r="7"/><path d="M20 19v30M20 49l-9 30M20 49l9 30M8 28l12-4 12 4"/></svg>
+            <b>Ectomorfo</b><small>Longilineo, slanciato e magro</small>
+          </div>
+          <div class="soma" tabindex="0" role="button" data-soma="meso">
+            <svg viewBox="0 0 40 100"><circle cx="20" cy="12" r="7"/><path d="M20 19v30M20 49l-11 30M20 49l11 30M6 26l14-5 14 5M9 32h6M25 32h6"/></svg>
+            <b>Mesomorfo</b><small>Atletico e muscoloso</small>
+          </div>
+          <div class="soma" tabindex="0" role="button" data-soma="endo">
+            <svg viewBox="0 0 40 100"><circle cx="20" cy="12" r="7"/><path d="M20 19v28M20 47l-10 30M20 47l10 30M8 27c8 3 16 3 24 0M9 34h22"/></svg>
+            <b>Endomorfo</b><small>Brevilineo, statura robusta</small>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head"><h2>Capacità tecniche</h2><span class="spacer"></span><span style="font-size:12.5px;color:var(--muted)">Vota da Insufficiente a Ottimo</span></div>
+      <div class="tech-list" id="techList-tec"></div>
+    </div>
+
+    <div class="panel" id="gkCapPanel" hidden>
+      <div class="panel-head"><h2>Capacità del portiere</h2><span class="spacer"></span><span style="font-size:12.5px;color:var(--muted)">Scheda specifica per il ruolo</span></div>
+      <div class="tech-list" id="techList-gk"></div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head"><h2>Capacità tattiche</h2></div>
+      <div class="tech-list" id="techList-tat"></div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head"><h2>Capacità condizionali</h2></div>
+      <div class="tech-list" id="techList-con"></div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head"><h2>Mentalità</h2></div>
+      <div class="tech-list" id="techList-men"></div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head"><h2>Valutazione finale</h2></div>
+      <div style="padding:16px 18px 20px">
+        <div class="fg-field" style="margin-bottom:14px">
+          <label for="sNote">Note</label>
+          <textarea id="sNote" style="width:100%;font:inherit;color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:9px;padding:10px 12px;min-height:100px;resize:vertical" placeholder="Impressioni generali sul giocatore…"></textarea>
+        </div>
+        <span class="field-label">Giudizio</span>
+        <div class="chiprow" id="verdictRow" role="group" aria-label="Giudizio finale">
+          <button type="button" class="chip" data-verdict="Non Idoneo">Non Idoneo</button>
+          <button type="button" class="chip" data-verdict="Da Seguire">Da Seguire</button>
+          <button type="button" class="chip" data-verdict="Da Provare">Da Provare</button>
+          <button type="button" class="chip" data-verdict="Da Acquistare">Da Acquistare</button>
+        </div>
+        <div class="fg-field" style="margin-top:16px">
+          <label for="sRelazione">Relazione tecnica</label>
+          <textarea id="sRelazione" style="width:100%;font:inherit;color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:9px;padding:10px 12px;min-height:130px;resize:vertical" placeholder="Relazione dettagliata per la dirigenza…"></textarea>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head"><h2>Check giocatori</h2></div>
+      <div style="padding:16px 18px 20px">
+        <div class="fg-field" style="max-width:340px"><label for="sCheck">Cognome</label><input id="sCheck" type="search" placeholder="Cerca nella movlista…"></div>
+        <div style="margin-top:10px" id="checkResults"></div>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:18px;flex-wrap:wrap">
+      <button class="btn" id="sSave" type="button">Salva scheda</button>
+      <div class="toast" id="sToast" hidden style="margin-top:0;align-self:center">Scheda registrata: demo, nessun dato inviato.</div>
+    </div>
+  </section>
+
+  <!-- ============ SCHEDE SALVATE ============ -->
+  <section class="view" id="view-schede" hidden>
+    <p class="kicker">Archivio relazioni</p>
+    <h1>Schede salvate</h1>
+    <p class="lede">Le valutazioni compilate restano qui: filtra per verdetto, riaprile o stampale per la dirigenza.</p>
+
+    <div class="panel">
+      <div class="panel-head">
+        <h2>Elenco</h2>
+        <span class="spacer"></span>
+        <select id="scFilter" aria-label="Filtra per verdetto" style="font:inherit;font-size:13.5px;color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:9px;padding:8px 12px">
+          <option value="">Tutti i verdetti</option>
+          <option value="Da Acquistare">Da Acquistare</option>
+          <option value="Da Provare">Da Provare</option>
+          <option value="Da Seguire">Da Seguire</option>
+          <option value="Non Idoneo">Non Idoneo</option>
+        </select>
+      </div>
+      <ul class="scheda-list" id="scList"></ul>
+      <div class="empty" id="scEmpty">Nessuna scheda salvata: compila la prima dalla sezione <a href="#nuova-scheda">Nuova Scheda</a>.</div>
+    </div>
+
+    <div class="panel" id="scDetail" hidden>
+      <div class="panel-head">
+        <h2 id="scDetailTitle"></h2>
+        <span class="spacer"></span>
+        <button class="icon-btn" id="scPrint" title="Stampa scheda" aria-label="Stampa scheda"><svg viewBox="0 0 24 24"><path d="M7 8V3h10v5M7 17H4a1 1 0 0 1-1-1v-6a1 1 0 0 1 1-1h16a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1h-3M7 14h10v7H7z"/></svg></button>
+        <button class="icon-btn danger" id="scDelete" title="Elimina scheda" aria-label="Elimina scheda"><svg viewBox="0 0 24 24"><path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2M6 7l1 13a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1l1-13M10 11v6M14 11v6"/></svg></button>
+        <button class="icon-btn" id="scClose" title="Chiudi" aria-label="Chiudi dettaglio"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+      </div>
+      <div class="scheda-detail" id="scDetailBody"></div>
+    </div>
+  </section>
+
+  <!-- ============ CERCA ============ -->
+  <section class="view" id="view-cerca" hidden>
+    <p class="kicker">Motore di ricerca</p>
+    <h1>Cerca</h1>
+    <p class="lede">Filtra la movlista per nome, ruolo e rating minimo.</p>
+    <div class="searchbar">
+      <input id="qName" type="search" placeholder="Cerca per nome o squadra…" aria-label="Cerca giocatore">
+      <select id="qRole" aria-label="Ruolo">
+        <option value="">Tutti i ruoli</option>
+        <option value="P">Portiere</option>
+        <option value="DS">Difesa</option>
+        <option value="CC">Centrocampo</option>
+        <option value="AD/PC">Attacco</option>
+      </select>
+      <select id="qOvr" aria-label="Rating minimo">
+        <option value="0">OVR min: qualsiasi</option>
+        <option value="70">OVR min: 70</option>
+        <option value="75">OVR min: 75</option>
+        <option value="80">OVR min: 80</option>
+      </select>
+    </div>
+    <div class="panel">
+      <div class="scroll-x">
+        <table>
+          <thead><tr><th>Giocatore</th><th>Ruolo</th><th>Età</th><th>Squadra</th><th style="text-align:center">OVR</th></tr></thead>
+          <tbody id="qBody"></tbody>
+        </table>
+      </div>
+      <div class="empty" id="qEmpty" hidden>Nessun giocatore corrisponde ai filtri: prova ad allargarli.</div>
+    </div>
+  </section>
+
+  <!-- ============ CATEGORIE ============ -->
+  <section class="view" id="view-categorie" hidden>
+    <p class="kicker">Anagrafica</p>
+    <h1>Categorie</h1>
+    <p class="lede">Gestisci le competizioni monitorate: aggiungi una nuova categoria, rinominala o eliminala.</p>
+
+    <div class="panel">
+      <div class="panel-head"><h2>Inserimento categoria</h2></div>
+      <form class="add-row" id="catAddForm">
+        <input id="catNew" type="text" placeholder="Nome della nuova categoria…" aria-label="Nome nuova categoria">
+        <button class="btn" type="submit">Aggiungi</button>
+      </form>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head"><h2>Categorie caricate</h2><span class="spacer"></span><span style="font-size:13px;color:var(--muted)" id="catCount"></span></div>
+      <ul class="cat-list" id="catList"></ul>
+      <div class="empty" id="catEmpty" hidden>Nessuna categoria: aggiungine una qui sopra.</div>
+    </div>
+  </section>
+
+  <!-- ============ CONTATTI ============ -->
+  <section class="view" id="view-contatti" hidden>
+    <p class="kicker">Anagrafica referenti</p>
+    <h1>Contatti</h1>
+    <p class="lede">Directory dei referenti delle società: direttori sportivi, team manager e osservatori.</p>
+
+    <div class="panel">
+      <div class="panel-head"><h2 id="ctFormTitle">Nuovo referente</h2></div>
+      <form id="ctForm">
+        <div class="scheda-grid">
+          <div class="fg-field"><label for="ctNome">Nome</label><input id="ctNome" type="text" placeholder="Es. Marco"></div>
+          <div class="fg-field"><label for="ctCognome">Cognome</label><input id="ctCognome" type="text" placeholder="Es. Rossi"></div>
+          <div class="fg-field"><label for="ctIndirizzo">Indirizzo</label><input id="ctIndirizzo" type="text" placeholder="Via, numero civico"></div>
+          <div class="fg-field"><label for="ctRuolo">Ruolo</label>
+            <select id="ctRuolo"><option>Direttore Sportivo</option><option>Team Manager</option><option>Osservatore</option><option>Dirigente</option><option>Segreteria</option></select>
+          </div>
+          <div class="fg-field"><label for="ctCell">Cellulare</label><input id="ctCell" type="tel" placeholder="Es. 348 5201476"></div>
+          <div class="fg-field"><label for="ctMail">E-Mail</label><input id="ctMail" type="email" placeholder="nome@esempio.it"></div>
+          <div class="fg-field fg-wide"><label for="ctSoc">Società</label><input id="ctSoc" type="text" placeholder="Es. US Siena"></div>
+        </div>
+        <div style="display:flex;gap:10px;align-items:center;padding:0 18px 18px;flex-wrap:wrap">
+          <button class="btn" type="submit" id="ctSaveBtn">Salva referente</button>
+          <button class="btn" type="button" id="ctCancelBtn" hidden style="background:var(--surface-2);color:var(--fg)">Annulla</button>
+          <div class="toast" id="ctToast" hidden style="margin-top:0;align-self:center">Referente salvato.</div>
+        </div>
+      </form>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head">
+        <h2>Rubrica</h2>
+        <span class="spacer"></span>
+        <input id="ctSearch" type="search" placeholder="Cerca referente…" aria-label="Cerca referente" style="font:inherit;font-size:13.5px;color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:9px;padding:8px 12px;min-width:0">
+        <button class="icon-btn" id="ctPrint" title="Stampa rubrica" aria-label="Stampa rubrica"><svg viewBox="0 0 24 24"><path d="M7 8V3h10v5M7 17H4a1 1 0 0 1-1-1v-6a1 1 0 0 1 1-1h16a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1h-3M7 14h10v7H7z"/></svg></button>
+      </div>
+      <div class="scroll-x">
+        <table>
+          <thead><tr><th>Ruolo</th><th>Cognome</th><th>Nome</th><th>Indirizzo</th><th>Cell.</th><th>E-Mail</th><th>Società</th><th></th></tr></thead>
+          <tbody id="ctBody"></tbody>
+        </table>
+      </div>
+      <div class="empty" id="ctEmpty" hidden>Nessun referente corrisponde alla ricerca.</div>
+    </div>
+
+    <div class="contact-wrap">
+      <div class="aside-card" style="grid-column:1/-1">
+        <h3>Redazione ScoutGest</h3>
+        <p style="margin:0 0 4px">Per informazioni sulla piattaforma:</p>
+        <p style="margin:0 0 4px">Email: <a href="mailto:info@scoutgest.it">info@scoutgest.it</a></p>
+        <p style="margin:0">Tel: <span style="color:#fff;font-weight:600">+39 085 000 0000</span></p>
+        <div class="socials">
+          <a href="https://facebook.com" target="_blank" rel="noopener" aria-label="Facebook"><svg viewBox="0 0 24 24"><path d="M13.5 21v-7h2.4l.4-3h-2.8V9.1c0-.9.3-1.5 1.6-1.5h1.3V4.9c-.3 0-1.1-.1-2-.1-2 0-3.4 1.2-3.4 3.5V11H8.5v3H11v7z"/></svg></a>
+          <a href="https://instagram.com" target="_blank" rel="noopener" aria-label="Instagram"><svg viewBox="0 0 24 24"><path d="M12 4.5c2.4 0 2.7 0 3.7.1 2.4.1 3.6 1.3 3.7 3.7 0 1 .1 1.2.1 3.7s0 2.7-.1 3.7c-.1 2.4-1.3 3.6-3.7 3.7-1 0-1.2.1-3.7.1s-2.7 0-3.7-.1c-2.4-.1-3.6-1.3-3.7-3.7 0-1-.1-1.2-.1-3.7s0-2.7.1-3.7C4.7 5.9 5.9 4.7 8.3 4.6c1-.1 1.3-.1 3.7-.1zM12 3C9.6 3 9.3 3 8.3 3.1 5 3.2 3.2 5 3.1 8.3 3 9.3 3 9.6 3 12s0 2.7.1 3.7c.1 3.3 1.9 5.1 5.2 5.2 1 .1 1.3.1 3.7.1s2.7 0 3.7-.1c3.3-.1 5.1-1.9 5.2-5.2.1-1 .1-1.3.1-3.7s0-2.7-.1-3.7c-.1-3.3-1.9-5.1-5.2-5.2C14.7 3 14.4 3 12 3zm0 4.4a4.6 4.6 0 1 0 0 9.2 4.6 4.6 0 0 0 0-9.2zM12 15a3 3 0 1 1 0-6 3 3 0 0 1 0 6zm4.8-8.9a1.1 1.1 0 1 0 0 2.2 1.1 1.1 0 0 0 0-2.2z"/></svg></a>
+          <a href="https://linkedin.com" target="_blank" rel="noopener" aria-label="LinkedIn"><svg viewBox="0 0 24 24"><path d="M6.9 8.6H3.8V21h3.1zM5.4 3.5a1.9 1.9 0 1 0 0 3.8 1.9 1.9 0 0 0 0-3.8zM21 13.9c0-3.4-1.8-5-4.2-5-1.9 0-2.8 1.1-3.3 1.8V8.6h-3.1V21h3.1v-6.6c0-1.7.9-2.6 2.1-2.6 1.2 0 2.3.7 2.3 2.7V21H21z"/></svg></a>
+          <a href="https://wa.me/390850000000" target="_blank" rel="noopener" aria-label="WhatsApp"><svg viewBox="0 0 24 24"><path d="M12 3a9 9 0 0 0-7.8 13.5L3 21l4.6-1.2A9 9 0 1 0 12 3zm0 16.3a7.2 7.2 0 0 1-3.7-1l-.3-.2-2.7.7.7-2.6-.2-.3A7.3 7.3 0 1 1 12 19.3zm4-5.4c-.2-.1-1.3-.6-1.5-.7s-.4-.1-.5.1-.6.7-.7.9-.3.2-.5.1a5.9 5.9 0 0 1-1.7-1.1 6.5 6.5 0 0 1-1.2-1.5c-.1-.2 0-.4.1-.5l.4-.5c.1-.1.2-.3.3-.4s0-.3 0-.4-.5-1.3-.7-1.7-.4-.4-.5-.4h-.5a1 1 0 0 0-.7.3 2.9 2.9 0 0 0-.9 2.2 5 5 0 0 0 1.1 2.7 11.4 11.4 0 0 0 4.4 3.9 5 5 0 0 0 3.1.4 2.6 2.6 0 0 0 1.7-1.2 2.1 2.1 0 0 0 .2-1.2c-.1-.1-.3-.2-.5-.3z"/></svg></a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <b>ScoutGest</b> · Creato da Ing. Marco Lazzeri
+  </footer>
+</main>
+
+<script>
+(function(){
+  'use strict';
+
+  /* ---------- dati demo ---------- */
+  var PLAYERS = [
+    {nome:'Andrea Segre',   ruolo:'AD', ruoloTxt:'Ala DX',  eta:22, anno:2004, alt:1.78, piede:'Destro', cat:'Serie D',  squadra:'Renato Curi Angolana', ovr:78, attrs:{Velocità:84,Passaggio:70,Tiro:74,Dribbling:81,Difesa:52,Fisico:68}},
+    {nome:'Tommaso Baldanzi',ruolo:'CC', ruoloTxt:'Trequartista', eta:23, anno:2003, alt:1.73, piede:'Sinistro', cat:'Serie A', squadra:'Empoli', ovr:82, attrs:{Velocità:76,Passaggio:84,Tiro:79,Dribbling:85,Difesa:55,Fisico:66}},
+    {nome:'Luca D\'Andrea', ruolo:'PC', ruoloTxt:'Punta centrale', eta:20, anno:2006, alt:1.88, piede:'Destro', cat:'Primavera', squadra:'Pescara U19', ovr:74, attrs:{Velocità:78,Passaggio:62,Tiro:80,Dribbling:70,Difesa:38,Fisico:75}},
+    {nome:'Samuele Ricci',  ruolo:'CC', ruoloTxt:'Centrocampista', eta:25, anno:2001, alt:1.86, piede:'Destro', cat:'Serie A', squadra:'Torino', ovr:81, attrs:{Velocità:68,Passaggio:83,Tiro:64,Dribbling:72,Difesa:78,Fisico:80}},
+    {nome:'Federico Gatti', ruolo:'DC', ruoloTxt:'Difensore centrale', eta:27, anno:1999, alt:1.90, piede:'Destro', cat:'Serie A', squadra:'Juventus', ovr:80, attrs:{Velocità:62,Passaggio:70,Tiro:45,Dribbling:58,Difesa:84,Fisico:86}},
+    {nome:'Gabriele Piccolo',ruolo:'DS', ruoloTxt:'Terzino SX', eta:19, anno:2007, alt:1.74, piede:'Sinistro', cat:'U17', squadra:'Lazio U17', ovr:71, attrs:{Velocità:82,Passaggio:66,Tiro:52,Dribbling:69,Difesa:70,Fisico:60}},
+    {nome:'Matteo Cancellieri',ruolo:'AD', ruoloTxt:'Ala SX', eta:24, anno:2002, alt:1.75, piede:'Sinistro', cat:'Serie A', squadra:'Lazio', ovr:77, attrs:{Velocità:88,Passaggio:68,Tiro:71,Dribbling:80,Difesa:44,Fisico:63}},
+    {nome:'Cristiano Paglietta',ruolo:'CC', ruoloTxt:'Mediano', eta:26, anno:2000, alt:1.82, piede:'Destro', cat:'Serie B', squadra:'Cremonese', ovr:75, attrs:{Velocità:60,Passaggio:76,Tiro:58,Dribbling:64,Difesa:80,Fisico:79}},
+    {nome:'Alessandro Ventre',ruolo:'DC', ruoloTxt:'Difensore centrale', eta:21, anno:2005, alt:1.87, piede:'Destro', cat:'U20', squadra:'Inter U20', ovr:73, attrs:{Velocità:66,Passaggio:64,Tiro:40,Dribbling:52,Difesa:78,Fisico:82}},
+    {nome:'Gianluca D\'Agostino',ruolo:'T', ruoloTxt:'Trequartista', eta:18, anno:2008, alt:1.70, piede:'Ambidestro', cat:'U17', squadra:'Roma U17', ovr:70, attrs:{Velocità:74,Passaggio:78,Tiro:66,Dribbling:83,Difesa:40,Fisico:55}},
+    {nome:'Simone Paolini', ruolo:'AD', ruoloTxt:'Ala DX', eta:23, anno:2003, alt:1.76, piede:'Destro', cat:'Serie C', squadra:'Pineto', ovr:72, attrs:{Velocità:79,Passaggio:63,Tiro:68,Dribbling:74,Difesa:48,Fisico:65}},
+    {nome:'Niccolò Fortini', ruolo:'DS', ruoloTxt:'Terzino SX', eta:25, anno:2001, alt:1.81, piede:'Sinistro', cat:'Serie B', squadra:'Salernitana', ovr:74, attrs:{Velocità:72,Passaggio:70,Tiro:50,Dribbling:62,Difesa:76,Fisico:73}}
+  ];
+  var MATCHES=[
+    {data:'2026-11-16', cat:'Serie D',   societa:'Renato Curi Angolana', tipo:'Campionato', avversario:'Vis Artena',      risultato:'2–1'},
+    {data:'2026-11-09', cat:'Serie D',   societa:'Renato Curi Angolana', tipo:'Campionato', avversario:'SS Monopoli',     risultato:'0–0'},
+    {data:'2026-11-02', cat:'Primavera', societa:'Pescara U19',          tipo:'Torneo',     avversario:'Roma U19',        risultato:'3–2'},
+    {data:'2026-10-26', cat:'Serie C',   societa:'Pineto',               tipo:'Amichevole', avversario:'Sambenedettese',  risultato:'1–2'},
+    {data:'2026-10-19', cat:'U17',       societa:'Lazio U17',            tipo:'Campionato', avversario:'Roma U17',        risultato:'2–2'}
+  ];
+  var GKS = [
+    {nome:'Elia Capanni',   eta:22, cat:'Serie C',   squadra:'Sambenedettese', rif:79, tuffo:77, alte:74, piedi:66, ovr:76},
+    {nome:'Michele Rizzo',  eta:19, cat:'Primavera', squadra:'Napoli U19',     rif:74, tuffo:76, alte:70, piedi:73, ovr:73},
+    {nome:'Davide Marconi', eta:27, cat:'Serie B',   squadra:'Cesena',         rif:82, tuffo:80, alte:83, piedi:61, ovr:80}
+  ];
+  var EVENTS = [
+    {min:"6'",  tag:'goal', txt:'Segre (RCA) cross basso dalla sinistra, Folianni di tacco: 1–0'},
+    {min:"31'", tag:'card', txt:'Ammonito Paglietta per gioco tattico a centrocampo'},
+    {min:"44'", tag:'',     txt:'Vis Artena pareggia con Di Pasquale su azione esterna'},
+    {min:"58'", tag:'goal', txt:'Segre ancora protagonista: assist da fondo, 2–1 Rossi'},
+    {min:"71'", tag:'',     txt:'Doppio cambio RCA: esce Segre, applausi dei tifosi'},
+    {min:"88'", tag:'card', txt:'Espulso il capitano della Vis Artena per proteste'}
+  ];
+  var CATS=['Allievi Nazionali','Allievi Regionali','Eccellenza Abruzzo','Esordienti I Anno','Esordienti II Anno','Giovanissimi','Juniores Nazionali','Lega Pro A','Lega Pro B','Lega Pro C','Prima Squadra','Primavera 1','Primavera 2','Primavera 3','Primi Calci I Anno','Primi Calci II Anno','Pulcini I Anno','Pulcini II Anno','Serie A','Serie B','Serie D','Under 14','Under 15','Under 16','Under 17','Under 18','Under 19'];
+
+  /* ---------- helper ---------- */
+  function $(id){return document.getElementById(id)}
+  function ovrClass(v){return v>=78?'hi':v>=72?'mid':'lo'}
+  function show(el){el.hidden=false}
+  function hide(el){el.hidden=true}
+
+  /* ---------- routing ---------- */
+  var VIEWS=['home','calciatori','portieri','match-analisi','nuova-scheda','schede','cerca','categorie','contatti'];
+  var LOGGED_KEY='sg_logged';
+
+  function currentRoute(){
+    var h=(location.hash||'').replace('#','');
+    return VIEWS.indexOf(h)>-1?h:'home';
+  }
+  function render(){
+    var logged=false;
+    try{logged=localStorage.getItem(LOGGED_KEY)==='1'}catch(e){}
+    hide($('view-login'));hide($('app'));hide($('topbar'));
+    VIEWS.forEach(function(v){hide($('view-'+v))});
+    if(!logged){show($('view-login'));document.title='ScoutGest — Accedi';return}
+    show($('topbar'));show($('app'));
+    var route=currentRoute();
+    show($('view-'+route));
+    Array.prototype.forEach.call($('topnav').children,function(a){
+      a.classList.toggle('active',a.getAttribute('data-nav')===route);
+    });
+    document.title='ScoutGest — '+({home:'Home',calciatori:'Calciatori',portieri:'Portieri','match-analisi':'Match Analisi','nuova-scheda':'Nuova Scheda',schede:'Schede',cerca:'Cerca',categorie:'Categorie',contatti:'Contatti'})[route];
+    window.scrollTo(0,0);
+  }
+  window.addEventListener('hashchange',render);
+
+  /* ---------- login / logout ---------- */
+  $('loginForm').addEventListener('submit',function(e){
+    e.preventDefault();
+    try{localStorage.setItem(LOGGED_KEY,'1')}catch(err){}
+    render();
+  });
+  $('logoutBtn').addEventListener('click',function(){
+    try{localStorage.removeItem(LOGGED_KEY)}catch(err){}
+    location.hash='';
+    render();
+  });
+
+  /* ---------- tabelle ---------- */
+  function roleClass(r){return r.indexOf('/')>-1?'AD':r}
+  function playerRow(p,withCat){
+    return '<tr data-player="'+p.nome.replace(/"/g,'&quot;')+'" tabindex="0" role="button" aria-label="Apri scheda di '+p.nome+'">'
+      +'<td class="name-cell">'+p.nome+'</td>'
+      +'<td><span class="role-tag '+roleClass(p.ruolo)+'">'+p.ruoloTxt+'</span></td>'
+      +'<td>'+p.eta+'</td>'
+      +(withCat?'<td>'+p.cat+'</td>':'')
+      +'<td>'+p.squadra+'</td>'
+      +'<td style="text-align:center"><span class="ovr '+ovrClass(p.ovr)+'">'+p.ovr+'</span></td></tr>';
+  }
+  $('cBody').innerHTML=PLAYERS.map(function(p){return playerRow(p,true)}).join('');
+  $('gkBody').innerHTML=GKS.map(function(g){
+    return '<tr><td class="name-cell">'+g.nome+'</td><td>'+g.eta+'</td><td>'+g.cat+'</td>'
+      +'<td>'+g.rif+'</td><td>'+g.tuffo+'</td><td>'+g.alte+'</td><td>'+g.piedi+'</td>'
+      +'<td style="text-align:center"><span class="ovr '+ovrClass(g.ovr)+'">'+g.ovr+'</span></td></tr>';
+  }).join('');
+  $('cCount').textContent=PLAYERS.length+' giocatori';
+
+  /* scheda giocatore */
+  function openPlayer(nome){
+    var p=null;
+    for(var i=0;i<PLAYERS.length;i++){if(PLAYERS[i].nome===nome){p=PLAYERS[i];break}}
+    if(!p)return;
+    $('pcName').textContent=p.nome+' — '+p.ruoloTxt+', '+p.squadra;
+    var o=$('pcOvr');o.textContent=p.ovr;o.className='ovr '+ovrClass(p.ovr);
+    $('pcAttrs').innerHTML=Object.keys(p.attrs).map(function(k){
+      var v=p.attrs[k];
+      return '<div class="attr"><label>'+k+' · <b>'+v+'</b></label>'
+        +'<div class="meter"><i style="width:'+v+'%"></i></div></div>';
+    }).join('');
+    show($('playerCard'));
+    $('playerCard').scrollIntoView({behavior:'smooth',block:'nearest'});
+  }
+  $('cBody').addEventListener('click',function(e){
+    var tr=e.target.closest('tr[data-player]');
+    if(tr)openPlayer(tr.getAttribute('data-player'));
+  });
+  $('cBody').addEventListener('keydown',function(e){
+    if(e.key==='Enter'||e.key===' '){
+      var tr=e.target.closest('tr[data-player]');
+      if(tr){e.preventDefault();openPlayer(tr.getAttribute('data-player'))}
+    }
+  });
+
+  /* ---------- match timeline ---------- */
+  $('tlList').innerHTML=EVENTS.map(function(ev){
+    return '<li><span class="min">'+ev.min+'</span>'
+      +(ev.tag?'<span class="ev-tag '+ev.tag+'">'+(ev.tag==='goal'?'Gol':'Cartellino')+'</span>':'')
+      +'<span class="who">'+ev.txt+'</span></li>';
+  }).join('');
+
+  /* ---------- cerca ---------- */
+  function renderSearch(){
+    var q=$('qName').value.trim().toLowerCase();
+    var role=$('qRole').value;
+    var min=parseInt($('qOvr').value,10)||0;
+    var res=PLAYERS.filter(function(p){
+      var matchQ=!q||p.nome.toLowerCase().indexOf(q)>-1||p.squadra.toLowerCase().indexOf(q)>-1;
+      var matchR=!role||(p.ruolo===role||(role==='AD/PC'&&(p.ruolo==='AD'||p.ruolo==='PC')));
+      return matchQ&&matchR&&p.ovr>=min;
+    });
+    $('qBody').innerHTML=res.map(function(p){return playerRow(p,false)}).join('')||'';
+    $('qEmpty').hidden=res.length>0;
+  }
+  ['qName','qRole','qOvr'].forEach(function(id){
+    $(id).addEventListener('input',renderSearch);
+    $(id).addEventListener('change',renderSearch);
+  });
+  renderSearch();
+
+  /* ---------- gestione categorie ---------- */
+  var catEditing=-1;
+  function renderCats(){
+    var list=$('catList');
+    list.innerHTML=CATS.map(function(c,i){
+      var editing=i===catEditing;
+      return '<li class="cat-row" data-i="'+i+'">'
+        +(editing
+          ?'<input type="text" value="'+c.replace(/"/g,'&quot;')+'" aria-label="Rinomina categoria">'
+          :'<span class="cat-name">'+c+'</span>')
+        +'<button class="icon-btn '+(editing?'save':'')+'" data-act="'+(editing?'save':'edit')+'" title="'+(editing?'Salva':'Modifica')+'" aria-label="'+(editing?'Salva':'Modifica')+' '+c+'">'
+        +(editing
+          ?'<svg viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg>'
+          :'<svg viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16v4zM14 7l3 3"/></svg>')
+        +'</button>'
+        +'<button class="icon-btn danger" data-act="del" title="Elimina" aria-label="Elimina '+c+'">'
+        +'<svg viewBox="0 0 24 24"><path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2M6 7l1 13a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1l1-13M10 11v6M14 11v6"/></svg>'
+        +'</button>'
+        +'</li>';
+    }).join('');
+    $('catCount').textContent=CATS.length+' categorie';
+    $('catEmpty').hidden=CATS.length>0;
+    if(catEditing>-1){
+      var inp=list.querySelector('input');
+      if(inp){inp.focus();inp.select()}
+    }
+  }
+  $('catList').addEventListener('click',function(e){
+    var btn=e.target.closest('button[data-act]');
+    if(!btn)return;
+    var i=parseInt(btn.closest('.cat-row').getAttribute('data-i'),10);
+    var act=btn.getAttribute('data-act');
+    if(act==='edit'){catEditing=i;renderCats()}
+    else if(act==='save'){
+      var inp=$('catList').querySelector('input');
+      var v=inp?inp.value.trim():'';
+      if(v)CATS[i]=v;
+      catEditing=-1;renderCats();
+    }
+    else if(act==='del'){
+      CATS.splice(i,1);
+      if(catEditing===i)catEditing=-1;
+      else if(catEditing>i)catEditing--;
+      renderCats();
+    }
+  });
+  $('catList').addEventListener('keydown',function(e){
+    if(e.key!=='Enter')return;
+    var inp=e.target.closest('input');
+    if(!inp)return;
+    var i=parseInt(inp.closest('.cat-row').getAttribute('data-i'),10);
+    var v=inp.value.trim();
+    if(v)CATS[i]=v;
+    catEditing=-1;renderCats();
+  });
+  $('catAddForm').addEventListener('submit',function(e){
+    e.preventDefault();
+    var v=$('catNew').value.trim();
+    if(!v)return;
+    CATS.push(v);
+    CATS.sort(function(a,b){return a.localeCompare(b,'it')});
+    $('catNew').value='';
+    catEditing=-1;
+    renderCats();
+  });
+  renderCats();
+
+  /* ---------- match analisi: partite + atleti ---------- */
+  function fmtDate(iso){
+    var p=iso.split('-');
+    return p[2]+'/'+p[1]+'/'+p[0];
+  }
+  var TIPO_SEL='';
+  function renderMatches(){
+    var d=$('mData').value, cat=$('mCat').value, soc=$('mSoc').value.trim().toLowerCase();
+    var res=MATCHES.filter(function(m){
+      return (!d||m.data===d)
+        &&(!cat||m.cat===cat)
+        &&(!soc||m.societa.toLowerCase().indexOf(soc)>-1)
+        &&(!TIPO_SEL||m.tipo===TIPO_SEL);
+    });
+    $('mBody').innerHTML=res.map(function(m){
+      return '<tr><td>'+fmtDate(m.data)+'</td>'
+        +'<td><span class="ev-tag">'+m.tipo+'</span> <span class="sub">'+m.cat+'</span></td>'
+        +'<td class="name-cell">'+m.societa+'</td><td>'+m.avversario+'</td>'
+        +'<td style="text-align:center"><b>'+m.risultato+'</b></td></tr>';
+    }).join('');
+    $('mEmpty').hidden=res.length>0;
+  }
+  ['mData','mCat','mSoc'].forEach(function(id){
+    $(id).addEventListener('input',renderMatches);
+    $(id).addEventListener('change',renderMatches);
+  });
+  Array.prototype.forEach.call(document.querySelectorAll('#segTipo button'),function(b){
+    b.addEventListener('click',function(){
+      var on=b.classList.contains('on');
+      Array.prototype.forEach.call(document.querySelectorAll('#segTipo button'),function(x){x.classList.remove('on')});
+      if(on){TIPO_SEL=''}else{b.classList.add('on');TIPO_SEL=b.textContent}
+      renderMatches();
+    });
+  });
+
+  function gruppoRuolo(r){
+    if(r==='P')return 'Portiere';
+    if(r==='DC'||r==='DS'||r==='DD')return 'Difensore';
+    if(r==='CC')return 'Centrocampista';
+    if(r==='T')return 'Trequartista';
+    return 'Ala';
+  }
+  function renderAtleti(){
+    var ruolo=$('aRuolo').value, piede=$('aPiede').value, val=parseInt($('aVal').value,10)||0;
+    var annata=$('aAnnata').value, cat=$('aCat').value;
+    var min=parseFloat($('aAltMin').value), max=parseFloat($('aAltMax').value);
+    var res=PLAYERS.filter(function(p){
+      var okRuolo=!ruolo||p.ruolo===ruolo||gruppoRuolo(p.ruolo)===ruolo
+        ||(ruolo==='Ala'&&(p.ruolo==='AD'||p.ruolo==='AS'));
+      var okPiede=!piede||(p.piede||'Destro')===piede;
+      var okAnnata=!annata||String(p.anno)===annata;
+      var okAlt=(isNaN(min)||p.alt>=min)&&(isNaN(max)||p.alt<=max);
+      return okRuolo&&okPiede&&(!val||p.ovr>=val)&&okAnnata&&(!cat||p.cat===cat)&&okAlt;
+    });
+    $('aBody').innerHTML=res.map(function(p){
+      return '<tr><td class="name-cell">'+p.nome+'</td>'
+        +'<td><span class="role-tag '+roleClass(p.ruolo)+'">'+p.ruoloTxt+'</span></td>'
+        +'<td>'+(p.piede||'Destro')+'</td><td>'+p.anno+'</td><td>'+p.alt.toFixed(2).replace('.',',')+' m</td>'
+        +'<td>'+p.cat+'</td><td>'+p.squadra+'</td>'
+        +'<td style="text-align:center"><span class="ovr '+ovrClass(p.ovr)+'">'+p.ovr+'</span></td></tr>';
+    }).join('');
+    $('aEmpty').hidden=res.length>0;
+  }
+  ['aRuolo','aPiede','aVal','aAnnata','aCat','aAltMin','aAltMax'].forEach(function(id){
+    $(id).addEventListener('input',renderAtleti);
+    $(id).addEventListener('change',renderAtleti);
+  });
+  renderMatches();renderAtleti();
+
+  /* ---------- contatori home ---------- */
+  function renderHomeCounts(){
+    var map={calciatori:PLAYERS.length,portieri:GKS.length,partite:MATCHES.length,
+             categorie:CATS.length,referenti:CONTACTS.length,filtri:'6',schede:loadSchede().length};
+    $('hsPlayers').textContent=PLAYERS.length;
+    $('hsGk').textContent=GKS.length;
+    $('hsMatches').textContent=MATCHES.length;
+    $('hsCats').textContent=CATS.length;
+    Array.prototype.forEach.call(document.querySelectorAll('.tile-count'),function(el){
+      var k=el.getAttribute('data-count');
+      if(map[k]!==undefined)el.textContent=map[k];
+    });
+  }
+
+  /* ---------- nuova scheda ---------- */
+  /* data odierna precompilata */
+  try{
+    $('sData').value=new Date().toISOString().slice(0,10);
+  }catch(e){}
+
+  /* capacità: quattro categorie come nell'originale */
+  var TECH={
+    'tec':['Primo controllo','Tecnica','Calcio piede dx','Calcio piede sx','Colpo di testa','Contrasto','Passaggio corto','Passaggio lungo','Dribbling','Conclusione a rete'],
+    'tat':['Tattica','Marcamento','Senso della posizione','Smarcamento','Senso tattico','Velocità di esecuzione','Lettura del gioco','Guida palla'],
+    'con':['Velocità','Resistenza alla velocità','Resistenza','Forza esplosiva'],
+    'men':['Atteggiamento','Interazione','Leadership','Velocità di scelta']
+  };
+  var VOTI=['Insuff.','Suff.','Buono','Ottimo'];
+  Object.keys(TECH).forEach(function(grp){
+    $( 'techList-'+grp).innerHTML=TECH[grp].map(function(t){
+      return '<div class="tech-row"><span>'+t+'</span>'
+        +'<div class="seg" data-tech="'+t+'" role="group" aria-label="'+t+'">'
+        +VOTI.map(function(v){return '<button type="button" data-v="'+v+'">'+v+'</button>'}).join('')
+        +'</div></div>';
+    }).join('');
+    $('techList-'+grp).addEventListener('click',function(e){
+      var b=e.target.closest('button[data-v]');
+      if(!b)return;
+      var seg=b.parentElement;
+      Array.prototype.forEach.call(seg.children,function(x){x.classList.remove('on')});
+      b.classList.add('on');
+    });
+  });
+
+  /* segmenti generici (baricentro) */
+  Array.prototype.forEach.call(document.querySelectorAll('.fg-field .seg button'),function(b){
+    b.addEventListener('click',function(){
+      Array.prototype.forEach.call(b.parentElement.children,function(x){x.classList.remove('on')});
+      b.classList.add('on');
+    });
+  });
+
+  /* somatotipo */
+  var somaCards=document.querySelectorAll('.soma');
+  Array.prototype.forEach.call(somaCards,function(c){
+    function pick(){
+      Array.prototype.forEach.call(somaCards,function(x){x.classList.remove('on')});
+      c.classList.add('on');
+    }
+    c.addEventListener('click',pick);
+    c.addEventListener('keydown',function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();pick()}});
+  });
+
+  /* check giocatori: ricerca cognome nella movlista */
+  $('sCheck').addEventListener('input',function(){
+    var q=this.value.trim().toLowerCase();
+    var box=$('checkResults');
+    if(!q){box.innerHTML='';return}
+    var res=PLAYERS.filter(function(p){
+      return p.nome.toLowerCase().indexOf(q)>-1;
+    });
+    if(!res.length){
+      box.innerHTML='<div style="background:color-mix(in srgb,var(--warn) 14%,transparent);color:var(--warn);border-radius:9px;padding:10px 14px;font-weight:600">Nessuna corrispondenza nella movlista</div>';
+      return;
+    }
+    box.innerHTML='<ul class="check-list" style="border:1px solid var(--line);border-radius:10px">'
+      +res.map(function(p){
+        return '<li data-check="'+p.nome.replace(/"/g,'&quot;')+'"><b>'+p.nome+'</b>'
+          +'<span><span class="role-tag '+roleClass(p.ruolo)+'">'+p.ruoloTxt+'</span> <span class="sub">'+p.squadra+' · OVR '+p.ovr+'</span></span></li>';
+      }).join('')+'</ul>';
+  });
+  $('checkResults').addEventListener('click',function(e){
+    var li=e.target.closest('li[data-check]');
+    if(!li)return;
+    var nome=li.getAttribute('data-check');
+    var p=null;
+    for(var i=0;i<PLAYERS.length;i++){if(PLAYERS[i].nome===nome){p=PLAYERS[i];break}}
+    if(!p)return;
+    var parts=p.nome.split(' ');
+    $('sCognome').value=parts[0]||'';
+    $('sNome').value=parts.slice(1).join(' ');
+    $('sSocieta').value=p.squadra;
+    $('sAnno').value=String(2026-p.eta);
+    var RUOLI={P:'Portiere',DC:'Difensore',DS:'Difensore',DD:'Difensore',CC:'Centrocampista',T:'Trequartista',AD:'Ala',PC:'Punta centrale'};
+    if(RUOLI[p.ruolo]){$('sRuolo').value=RUOLI[p.ruolo];updateCapPanels()}
+    if(p.piede)$('sPiede').value=p.piede;
+    if(p.alt)$('sAltezza').value=p.alt.toFixed(2).replace('.',',');
+    /* preimposta i voti tecnici attorno all'OVR del giocatore */
+    var base=(p.ovr-70)/4; /* 0..~3 */
+    Array.prototype.forEach.call(document.querySelectorAll('.seg[data-tech]'),function(seg,idx){
+      Array.prototype.forEach.call(seg.children,function(x){x.classList.remove('on')});
+      var v=Math.max(0,Math.min(3,Math.round(base+(idx%2?0:0.6))));
+      seg.children[v].classList.add('on');
+    });
+  });
+
+  /* capacità portiere: lista specifica dell'originale */
+  var TECH_GK=[
+    'Sensibilità e dominio con le mani','Presa','Tuffo','Parata in caduta',
+    'Rapidità, spostamento tra i pali, posizione in porta','Scelta del tempo di uscita',
+    'Rinvio di piede, gioco con i piedi e distribuzione della palla con le mani',
+    'Uscita alta in presa','Uscita alta in presa con caduta','Uscita alta in tuffo',
+    'Uscita alta respinta/deviazione','Uscita bassa in anticipo','Uscita bassa a contrasto',
+    'Uscita bassa in opposizione','Uscita bassa a copertura',
+    'Respinta a una mano','Respinta a due mani','Respinta a un pugno','Respinta a due pugni',
+    'Respinta con il corpo','Respinta con i piedi',
+    'Organizzazione della difesa','Senso tattico','Forza (esplosiva)',
+    'Mobilità, agilità, equilibrio, reattività, doti acrobatiche, rapidità',
+    'Concentrazione','Forza di volontà','Autostima',
+    'Accettazione del rischio e della responsabilità','Personalità ed attitudine al comando',
+    'Comunicazione','Comportamento','Carisma/personalità','Capacità di organizzarsi',
+    'Spirito di squadra','Retropassaggio'
+  ];
+  $('techList-gk').innerHTML=TECH_GK.map(function(t){
+    return '<div class="tech-row"><span>'+t+'</span>'
+      +'<div class="seg" data-tech="'+t+'" role="group" aria-label="'+t+'">'
+      +VOTI.map(function(v){return '<button type="button" data-v="'+v+'">'+v+'</button>'}).join('')
+      +'</div></div>';
+  }).join('');
+  $('techList-gk').addEventListener('click',function(e){
+    var b=e.target.closest('button[data-v]');
+    if(!b)return;
+    var seg=b.parentElement;
+    Array.prototype.forEach.call(seg.children,function(x){x.classList.remove('on')});
+    b.classList.add('on');
+  });
+
+  /* il ruolo Portiere scambia i pannelli: campi specifici al posto di quelli di movimento */
+  function updateCapPanels(){
+    var isGK=$('sRuolo').value==='Portiere';
+    $('gkCapPanel').hidden=!isGK;
+    ['tec','tat','con','men'].forEach(function(g){$('techList-'+g).closest('.panel').hidden=isGK});
+  }
+  $('sRuolo').addEventListener('change',updateCapPanels);
+  updateCapPanels();
+
+  /* verdetto finale */
+  Array.prototype.forEach.call(document.querySelectorAll('#verdictRow .chip'),function(c){
+    c.addEventListener('click',function(){
+      Array.prototype.forEach.call(document.querySelectorAll('#verdictRow .chip'),function(x){x.classList.remove('on')});
+      c.classList.add('on');
+    });
+  });
+
+  /* ---------- storage schede ---------- */
+  var SCHEDE_KEY='sg_schede_v1';
+  function loadSchede(){
+    try{return JSON.parse(localStorage.getItem(SCHEDE_KEY)||'[]')}catch(e){return []}
+  }
+  function saveSchedeStore(arr){
+    try{localStorage.setItem(SCHEDE_KEY,JSON.stringify(arr));return true}
+    catch(e){return false}
+  }
+
+  /* salvataggio: raccoglie tutta la scheda e la persiste */
+  $('sSave').addEventListener('click',function(){
+    var votes={};
+    Array.prototype.forEach.call(document.querySelectorAll('.seg[data-tech]'),function(seg){
+      var on=seg.querySelector('button.on');
+      if(on)votes[seg.getAttribute('data-tech')]=on.getAttribute('data-v');
+    });
+    var votted=Object.keys(votes).length;
+    if(!$('sCognome').value.trim()&&!$('sNome').value.trim()){
+      $('sToast').textContent='Indica almeno il cognome o il nome del giocatore.';
+      $('sToast').style.background='color-mix(in srgb,var(--bad) 12%,transparent)';
+      $('sToast').style.color='var(--bad)';
+      show($('sToast'));
+      return;
+    }
+    var verdictEl=document.querySelector('#verdictRow .chip.on');
+    var s={
+      id:Date.now(),
+      osservatore:$('sOss').value.trim(),
+      data:$('sData').value,
+      partita:$('sPartita').value,
+      cognome:$('sCognome').value.trim(),
+      nome:$('sNome').value.trim(),
+      nazionalita:$('sNaz').value.trim(),
+      natoA:$('sNatoA').value.trim(),
+      natoIl:$('sNatoIl').value,
+      anno:$('sAnno').value,
+      cat:$('sCat').value,
+      societa:$('sSocieta').value.trim(),
+      ruolo:$('sRuolo').value,
+      piede:$('sPiede').value,
+      agenzia:$('sAgenzia').value.trim(),
+      altezza:$('sAltezza').value,
+      peso:$('sPeso').value,
+      baricentro:(document.querySelector('#segBaricentro .on')||{}).textContent||'',
+      somatotipo:(document.querySelector('.soma.on')||{}).getAttribute?.('data-soma')||'',
+      votes:votes,
+      note:$('sNote').value.trim(),
+      verdetto:verdictEl?verdictEl.getAttribute('data-verdict'):'',
+      relazione:$('sRelazione').value.trim()
+    };
+    var arr=loadSchede();
+    arr.push(s);
+    if(saveSchedeStore(arr)){
+      $('sToast').textContent='Scheda di '+(s.cognome||s.nome)+' salvata ('+votted+' valutazioni) · '+fmtDate(s.data||new Date().toISOString().slice(0,10));
+      $('sToast').style.background='';
+      $('sToast').style.color='';
+      show($('sToast'));
+      renderHomeCounts();renderSchede();
+    }else{
+      $('sToast').textContent='Salvataggio non riuscito: memoria del browser piena.';
+      $('sToast').style.background='color-mix(in srgb,var(--bad) 12%,transparent)';
+      $('sToast').style.color='var(--bad)';
+      show($('sToast'));
+    }
+  });
+
+  /* ---------- archivio schede ---------- */
+  var scOpenId=null;
+  function verdictClass(v){
+    if(v==='Da Acquistare')return 'acquistare';
+    if(v==='Da Provare')return 'provare';
+    if(v==='Da Seguire')return 'seguire';
+    if(v==='Non Idoneo')return 'idoneo';
+    return 'nessuno';
+  }
+  function renderSchede(){
+    var f=$('scFilter').value;
+    var arr=loadSchede().slice().reverse();
+    var res=f?arr.filter(function(s){return s.verdetto===f}):arr;
+    $('scList').innerHTML=res.map(function(s){
+      var nv=Object.keys(s.votes||{}).length;
+      return '<li class="scheda-item" data-id="'+s.id+'" tabindex="0" role="button" aria-label="Apri scheda di '+esc(s.cognome+' '+s.nome)+'">'
+        +'<span class="who">'+esc((s.cognome||'—')+' '+(s.nome||''))+'</span>'
+        +'<span class="grow meta">'+esc([s.ruolo,s.societa,s.cat].filter(Boolean).join(' · '))+'</span>'
+        +'<span class="meta">'+(s.data?fmtDate(s.data):'')+' · '+nv+' valutazioni</span>'
+        +'<span class="verdict-chip '+verdictClass(s.verdetto)+'">'+esc(s.verdetto||'senza verdetto')+'</span>'
+        +'</li>';
+    }).join('');
+    $('scEmpty').hidden=res.length>0;
+  }
+  $('scFilter').addEventListener('change',renderSchede);
+  function openScheda(id){
+    var s=null;
+    var arr=loadSchede();
+    for(var i=0;i<arr.length;i++){if(String(arr[i].id)===String(id)){s=arr[i];break}}
+    if(!s)return;
+    scOpenId=id;
+    var VOTI_TXT={'Insuff.':'1','Suff.':'2','Buono':'3','Ottimo':'4'};
+    $('scDetailTitle').textContent=(s.cognome||'—')+' '+(s.nome||'')+' — '+(s.data?fmtDate(s.data):'');
+    var htmlOut='<p class="sub">'+esc([s.ruolo,s.societa,s.cat,'Osservatore: '+s.osservatore,s.partita].filter(Boolean).join(' · '))+'</p>';
+    var fisica=[['Altezza',s.altezza],['Peso',s.peso],['Baricentro',s.baricentro],['Piede',s.piede]].filter(function(x){return x[1]});
+    if(fisica.length||s.somatotipo){
+      htmlOut+='<div class="votes-grid">'+fisica.map(function(x){
+        return '<div class="vote-cell"><span>'+x[0]+'</span><b>'+esc(String(x[1]))+'</b></div>';
+      }).join('')+(s.somatotipo?'<div class="vote-cell"><span>Somatotipo</span><b>'+esc(s.somatotipo)+'</b></div>':'')+'</div>';
+    }
+    var vk=Object.keys(s.votes||{});
+    if(vk.length){
+      htmlOut+='<span class="field-label">Valutazioni</span><div class="votes-grid">'
+        +vk.map(function(k){
+          var v=s.votes[k];
+          var cls='v'+(VOTI_TXT[v]||'2');
+          return '<div class="vote-cell"><span>'+esc(k)+'</span><b class="'+cls+'">'+esc(v)+'</b></div>';
+        }).join('')+'</div>';
+    }
+    if(s.note)htmlOut+='<span class="field-label">Note</span><div class="detail-note">'+esc(s.note)+'</div>';
+    if(s.relazione)htmlOut+='<span class="field-label">Relazione tecnica</span><div class="detail-note">'+esc(s.relazione)+'</div>';
+    if(!vk.length&&!s.note&&!s.relazione&&!fisica.length)htmlOut+='<div class="empty">Scheda senza valutazioni: apri di nuovo il giocatore e completa i voti.</div>';
+    $('scDetailBody').innerHTML=htmlOut;
+    show($('scDetail'));
+  }
+  $('scList').addEventListener('click',function(e){
+    var li=e.target.closest('.scheda-item');
+    if(li)openScheda(li.getAttribute('data-id'));
+  });
+  $('scList').addEventListener('keydown',function(e){
+    if(e.key!=='Enter')return;
+    var li=e.target.closest('.scheda-item');
+    if(li)openScheda(li.getAttribute('data-id'));
+  });
+  $('scClose').addEventListener('click',function(){hide($('scDetail'));scOpenId=null});
+  $('scDelete').addEventListener('click',function(){
+    if(scOpenId===null)return;
+    var arr=loadSchede().filter(function(s){return String(s.id)!==String(scOpenId)});
+    saveSchedeStore(arr);
+    hide($('scDetail'));scOpenId=null;
+    renderSchede();renderHomeCounts();
+  });
+  $('scPrint').addEventListener('click',function(){
+    if(scOpenId===null)return;
+    var s=null;
+    var arr=loadSchede();
+    for(var i=0;i<arr.length;i++){if(String(arr[i].id)===String(scOpenId)){s=arr[i];break}}
+    if(!s)return;
+    var vk=Object.keys(s.votes||{});
+    var rowsVote=vk.map(function(k){
+      return '<tr><td>'+esc(k)+'</td><td><b>'+esc(s.votes[k])+'</b></td></tr>';
+    }).join('');
+    var anag=[['Osservatore',s.osservatore],['Data',s.data?fmtDate(s.data):''],['Partita',s.partita],
+      ['Ruolo',s.ruolo],['Società',s.societa],['Categoria',s.cat],['Piede',s.piede],
+      ['Altezza',s.altezza],['Peso',s.peso],['Baricentro',s.baricentro],['Somatotipo',s.somatotipo],
+      ['Nato il',s.natoIl?fmtDate(s.natoIl):''],['Nato a',s.natoA],['Nazionalità',s.nazionalita],['Agenzia',s.agenzia]]
+      .filter(function(x){return x[1]})
+      .map(function(x){return '<tr><td>'+x[0]+'</td><td>'+esc(String(x[1]))+'</td></tr>'}).join('');
+    var w=window.open('','_blank');
+    if(!w)return;
+    w.document.write('<html><head><title>Scheda '+(s.cognome||'')+'</title><style>'
+      +'body{font-family:Helvetica,Arial,sans-serif;padding:36px;color:#152238;max-width:760px;margin:0 auto}'
+      +'h1{font-size:20px;margin:0}h2{font-size:14px;text-transform:uppercase;letter-spacing:.08em;color:#1a5cb0;margin:22px 0 8px;border-bottom:2px solid #c7920e;padding-bottom:4px}'
+      +'table{border-collapse:collapse;width:100%;font-size:13px;margin:6px 0 14px}'
+      +'th,td{border:1px solid #d9dfe8;padding:7px 10px;text-align:left}'
+      +'th{background:#eef2f7}'
+      +'.verdict{display:inline-block;background:#10294d;color:#fff;border-radius:6px;padding:5px 14px;font-weight:700;font-size:13px;margin-top:6px}'
+      +'.note{background:#f5f7fa;border:1px solid #d9dfe8;border-radius:8px;padding:12px 14px;font-size:13px;white-space:pre-wrap}'
+      +'</style></head><body>'
+      +'<h1>ScoutGest — Scheda di valutazione</h1>'
+      +'<h2>'+esc((s.cognome||'')+' '+(s.nome||''))+'</h2>'
+      +'<table>'+anag+'</table>'
+      +(rowsVote?'<h2>Valutazioni</h2><table><tr><th>Capacità</th><th>Voto</th></tr>'+rowsVote+'</table>':'')
+      +(s.note?'<h2>Note</h2><div class="note">'+esc(s.note)+'</div>':'')
+      +(s.relazione?'<h2>Relazione tecnica</h2><div class="note">'+esc(s.relazione)+'</div>':'')
+      +(s.verdetto?'<span class="verdict">Giudizio: '+esc(s.verdetto)+'</span>':'')
+      +'</body></html>');
+    w.document.close();
+    w.focus();
+    w.print();
+  });
+
+  /* ---------- contatti: rubrica referenti ---------- */
+  var CONTACTS=[
+    {ruolo:'DS',cognome:'Draghi',nome:'Gianluigi',indirizzo:'',cell:'3485201476',mail:'gianluigi.dra@gmail.com',soc:'US Siena'},
+    {ruolo:'DS',cognome:'Rossi',nome:'Marco',indirizzo:'',cell:'33140502',mail:'segreteria@xxxxxxxx.it',soc:'Lucchese'},
+    {ruolo:'Team Manager',cognome:'Attinello',nome:'Federico',indirizzo:'Viale Yhjjjj',cell:'334569999',mail:'',soc:'Colligiana'},
+    {ruolo:'Team Manager',cognome:'Elmi',nome:'Luca',indirizzo:'',cell:'3486414748',mail:'',soc:'Pietrasanta'},
+    {ruolo:'Team Manager',cognome:'Saltarelli',nome:'Corrado',indirizzo:'',cell:'3336987120',mail:'',soc:'Forte dei Marmi'}
+  ];
+  var ctEdit=-1;
+  function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;')}
+  function renderContacts(){
+    var q=$('ctSearch').value.trim().toLowerCase();
+    var res=CONTACTS.filter(function(c){
+      if(!q)return true;
+      return (c.nome+' '+c.cognome+' '+c.soc+' '+c.ruolo+' '+c.mail+' '+c.cell).toLowerCase().indexOf(q)>-1;
+    });
+    $('ctBody').innerHTML=res.map(function(c){
+      var i=CONTACTS.indexOf(c);
+      return '<tr data-ct="'+i+'" tabindex="0" role="button" aria-label="Apri scheda di '+esc(c.nome+' '+c.cognome)+'">'
+        +'<td><span class="role-tag">'+esc(c.ruolo)+'</span></td>'
+        +'<td class="name-cell">'+esc(c.cognome)+'</td><td>'+esc(c.nome)+'</td>'
+        +'<td>'+esc(c.indirizzo)+'</td>'
+        +'<td style="font-variant-numeric:tabular-nums">'+esc(c.cell)+'</td>'
+        +'<td>'+(c.mail?'<a href="mailto:'+esc(c.mail)+'">'+esc(c.mail)+'</a>':'')+'</td>'
+        +'<td>'+esc(c.soc)+'</td>'
+        +'<td><button class="icon-btn danger" data-ctdel="'+i+'" title="Elimina" aria-label="Elimina '+esc(c.cognome)+'"><svg viewBox="0 0 24 24"><path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2M6 7l1 13a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1l1-13M10 11v6M14 11v6"/></svg></button></td></tr>';
+    }).join('');
+    $('ctEmpty').hidden=res.length>0;
+  }
+  $('ctSearch').addEventListener('input',renderContacts);
+  $('ctBody').addEventListener('click',function(e){
+    var del=e.target.closest('button[data-ctdel]');
+    if(del){
+      var i=parseInt(del.getAttribute('data-ctdel'),10);
+      CONTACTS.splice(i,1);
+      if(ctEdit===i)ctResetForm();
+      renderContacts();
+      return;
+    }
+    var tr=e.target.closest('tr[data-ct]');
+    if(tr)ctLoad(parseInt(tr.getAttribute('data-ct'),10));
+  });
+  $('ctBody').addEventListener('keydown',function(e){
+    if(e.key!=='Enter')return;
+    var tr=e.target.closest('tr[data-ct]');
+    if(tr)ctLoad(parseInt(tr.getAttribute('data-ct'),10));
+  });
+  function ctResetForm(){
+    ctEdit=-1;
+    $('ctForm').reset();
+    $('ctFormTitle').textContent='Nuovo referente';
+    $('ctSaveBtn').textContent='Salva referente';
+    $('ctCancelBtn').hidden=true;
+  }
+  function ctLoad(i){
+    var c=CONTACTS[i];
+    if(!c)return;
+    ctEdit=i;
+    $('ctNome').value=c.nome;$('ctCognome').value=c.cognome;
+    $('ctIndirizzo').value=c.indirizzo;$('ctRuolo').value=c.ruolo;
+    $('ctCell').value=c.cell;$('ctMail').value=c.mail;$('ctSoc').value=c.soc;
+    $('ctFormTitle').textContent='Modifica referente — '+c.cognome;
+    $('ctSaveBtn').textContent='Aggiorna referente';
+    $('ctCancelBtn').hidden=false;
+    $('ctForm').scrollIntoView({behavior:'smooth',block:'nearest'});
+  }
+  $('ctCancelBtn').addEventListener('click',ctResetForm);
+  $('ctForm').addEventListener('submit',function(e){
+    e.preventDefault();
+    var c={
+      nome:$('ctNome').value.trim(),cognome:$('ctCognome').value.trim(),
+      indirizzo:$('ctIndirizzo').value.trim(),ruolo:$('ctRuolo').value,
+      cell:$('ctCell').value.trim(),mail:$('ctMail').value.trim(),soc:$('ctSoc').value.trim()
+    };
+    if(!c.nome&&!c.cognome)return;
+    if(ctEdit>-1){CONTACTS[ctEdit]=c}
+    else{CONTACTS.push(c)}
+    ctResetForm();
+    renderContacts();
+    show($('ctToast'));
+    setTimeout(function(){hide($('ctToast'))},2600);
+  });
+  $('ctPrint').addEventListener('click',function(){
+    var rows=CONTACTS.map(function(c){
+      return '<tr><td>'+esc(c.ruolo)+'</td><td>'+esc(c.cognome)+'</td><td>'+esc(c.nome)+'</td><td>'+esc(c.cell)+'</td><td>'+esc(c.mail)+'</td><td>'+esc(c.soc)+'</td></tr>';
+    }).join('');
+    var w=window.open('','_blank');
+    if(!w)return;
+    w.document.write('<html><head><title>Rubrica ScoutGest</title><style>body{font-family:Helvetica,Arial,sans-serif;padding:32px;color:#152238}h1{font-size:18px}table{border-collapse:collapse;width:100%;font-size:13px}th,td{border:1px solid #d9dfe8;padding:7px 10px;text-align:left}th{background:#eef2f7}</style></head><body><h1>ScoutGest — Rubrica referenti</h1><table><tr><th>Ruolo</th><th>Cognome</th><th>Nome</th><th>Cell.</th><th>E-Mail</th><th>Società</th></tr>'+rows+'</table></body></html>');
+    w.document.close();
+    w.focus();
+    w.print();
+  });
+  renderContacts();
+
+  renderHomeCounts();
+  renderSchede();
+  render();
+})();
+</script>
+</body>
+</html>
