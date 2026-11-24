@@ -205,6 +205,29 @@
   .role-pick{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px}
   .role-pick button{border:1px solid var(--line);background:var(--bg);border-radius:10px;padding:10px 8px;font-weight:700;font-size:12.5px;color:var(--muted)}
   .role-pick button.on{border-color:var(--pitch);color:var(--pitch);background:color-mix(in srgb,var(--pitch) 7%,transparent)}
+  /* fase 2: calendario, confronto, commenti */
+  .cal{display:grid;grid-template-columns:repeat(7,1fr);gap:5px}
+  .cal .calh{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);text-align:center;padding:4px 0}
+  .cal .day{min-height:78px;background:var(--surface-2);border-radius:8px;padding:5px 6px;font-size:11px;font-variant-numeric:tabular-nums}
+  .cal .day.out{opacity:.35}
+  .cal .day.today{box-shadow:inset 0 0 0 2px var(--gold)}
+  .cal .ev{display:block;margin-top:3px;background:var(--pitch);color:#fff;border-radius:5px;padding:2px 5px;font-size:10px;font-weight:600;cursor:pointer;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .cal .ev.done{background:var(--surface);color:var(--muted);border:1px solid var(--line)}
+  .calnav{display:flex;align-items:center;gap:10px}
+  .cmp-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+  .cmp-card{background:var(--surface-2);border-radius:12px;padding:10px;text-align:center}
+  .cmp-card b{display:block;font-size:14px}
+  .cmp-card small{color:var(--muted)}
+  .cmpradio td:first-child{width:26px}
+  .cmpradio input{width:auto}
+  .cmt{padding:10px 16px;border-bottom:1px solid var(--line);font-size:13.5px}
+  .cmt:last-child{border:0}
+  .cmt b{font-size:12.5px}
+  .cmt small{color:var(--muted)}
+  .cmt p{margin:4px 0 0}
+  .tagbar{display:flex;gap:6px;flex-wrap:wrap;padding:0 16px 14px}
+  .tagbar .tag{cursor:pointer;font-size:12px;padding:4px 12px}
+  .tagbar .tag.on{background:var(--pitch);color:#fff}
 </style>
 </head><body>
 
@@ -232,6 +255,7 @@
     <a class="nav-item" href="#giocatori" data-nav="giocatori"><svg viewBox="0 0 24 24"><circle cx="12" cy="7" r="4"/><path d="M4 21c1.5-3.8 4.4-5.5 8-5.5s6.5 1.7 8 5.5"/></svg>Giocatori</a>
     <a class="nav-item" href="#osservazioni" data-nav="osservazioni"><svg viewBox="0 0 24 24"><path d="M2 12s3.5-6.5 10-6.5S22 12 22 12s-3.5 6.5-10 6.5S2 12 2 12z"/><circle cx="12" cy="12" r="2.8"/></svg>Osservazioni</a>
     <a class="nav-item" href="#partite" data-nav="partite"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7l4.3 3.1-1.6 5H9.3l-1.6-5z"/></svg>Partite</a>
+    <a class="nav-item" href="#calendario" data-nav="calendario"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>Calendario</a>
     <a class="nav-item" href="#shortlist" data-nav="shortlist"><svg viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="3"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>Shortlist</a>
     <a class="nav-item" href="#report" data-nav="report"><svg viewBox="0 0 24 24"><path d="M6 2h9l4 4v16H6z"/><path d="M14 2v5h5M9 12h6M9 16h6"/></svg>Report</a>
     <div class="nav-sep">Organizzazione</div>
@@ -359,7 +383,7 @@ function toast(msg){var t=document.createElement('div');t.className='toast';t.te
 function dstr(off){var d=new Date(Date.now()+(off||0)*864e5);return d.toISOString().slice(0,10)}
 
 /* ================= NAV ================= */
-var VIEWS=['dashboard','giocatori','giocatori-new','osservazioni','osservazioni-new','partite','partite-new','shortlist','report','report-new','squadre','team','analytics','player'];
+var VIEWS=['dashboard','giocatori','giocatori-new','osservazioni','osservazioni-new','partite','partite-new','calendario','shortlist','report','report-new','confronta','squadre','team','analytics','player'];
 function nav(){var h=(location.hash||'#dashboard').slice(1);var seg=h.split('/');return {view:VIEWS.indexOf(seg[0])>-1?seg[0]:'dashboard',id:seg[1]}}
 function go(h){location.hash=h;window.scrollTo(0,0)}
 
@@ -446,7 +470,7 @@ function vGiocatori(){
     +'<td><span class="tag '+(p.priorita==='Alta'?'red':p.priorita==='Media'?'gold':'')+'">'+esc(p.priorita)+'</span></td>'
     +'<td><span class="tag '+(p.stato==='Shortlist'?'green':p.stato==='Segnalato'?'':'blue')+'">'+esc(p.stato)+'</span></td></tr>';
   });
-  return pagehead('Database','Giocatori','<button class="btn ghost" id="expCsv">Esporta CSV</button>'+(canEdit()?'<a class="btn" href="#giocatori-new">+ Nuovo giocatore</a>':''),'Il database centrale del reparto — clicca una riga per aprire il profilo.')
+  return pagehead('Database','Giocatori','<a class="btn ghost" href="#confronta">Confronta</a><button class="btn ghost" id="expCsv">Esporta CSV</button>'+(canEdit()?'<a class="btn" href="#giocatori-new">+ Nuovo giocatore</a>':''),'Il database centrale del reparto — clicca una riga per aprire il profilo.')
   +'<div class="card"><div class="filters">'
   +'<input id="gfQ" type="search" placeholder="Nome o club…" value="'+esc(gf.q)+'">'
   +'<select id="gfRuolo"><option value="">Tutti i ruoli</option>'+['Portiere','Difensore','Centrocampista','Attaccante'].map(function(r){return '<option'+(gf.ruolo===r?' selected':'')+'>'+r+'</option>'}).join('')+'</select>'
@@ -560,6 +584,17 @@ function vPlayer(id){
     body='<div class="card">'+(R.length?R.map(function(r){
       return '<div class="ob-row" data-go="#report/'+r.id+'"><div class="obh"><b>'+fmtD(r.data)+'</b><span class="tag '+(r.stato==='Approvato'?'green':r.stato==='Bozza'?'':'gold')+'">'+esc(r.stato)+'</span><span style="color:var(--muted);font-size:12.5px">'+esc((S.find(function(s){return s.id===r.scout})||{}).nome||'')+'</span><span style="margin-left:auto"><span class="score-pill '+scoreClass(r.val)+'">'+r.val+'</span></span></div><div class="obn">'+esc(r.raccomandazione)+'</div></div>';
     }).join(''):'<div class="empty">Nessun report.</div>')+'</div>';
+  }else if(tab==='note'){
+    var ALLTAGS=['interessante','alto potenziale','da rivedere','tecnico','dinamico','leader','progressione','fragilità','versatile','mancino','under radar','pronto per il salto'];
+    var notes=dbGet('pn_'+p.id,[]);
+    body='<div class="grid2">'
+    +'<div class="card"><div class="hd"><h2>Tag del giocatore</h2></div><div class="tagbar" style="padding-top:14px">'
+    +ALLTAGS.map(function(t){
+      var on=p.tags&&p.tags.indexOf(t)>-1;
+      return '<span class="tag'+(on?' on':'')+'" data-tag="'+esc(t)+'">'+esc(t)+'</span>';
+    }).join('')+'</div><div style="padding:0 16px 16px;color:var(--muted);font-size:12.5px">Clicca un tag per attivarlo o disattivarlo. I tag sono filtrabili nella ricerca.</div></div>'
+    +'<div class="card"><div class="hd"><h2>Note interne</h2></div><div style="padding:12px 16px"><textarea id="pnText" rows="5" placeholder="Note interne, promemoria, segnalazioni…">'+esc(notes.join('\n\n'))+'</textarea><div style="margin-top:8px"><button class="btn sm" id="pnSave">Salva note</button></div></div></div>'
+    +'</div>';
   }else{
     var ev=[];
     if(p.scoperta)ev.push({d:p.scoperta,t:'Scoperta',x:'Inserito da '+((S.find(function(s){return s.id===p.scout})||{}).nome||'—')});
@@ -582,7 +617,7 @@ function vPlayer(id){
   +'</div></div>'
   +(canEdit()?'<div style="display:flex;gap:8px;flex-wrap:wrap"><a class="btn" href="#osservazioni-new/'+p.id+'">+ Osservazione</a><a class="btn gold" href="#report-new/'+p.id+'">+ Report</a><button class="btn ghost" id="pShort">Shortlist</button></div>':'')
   +'</div>'
-  +'<div class="tabs">'+[['overview','Overview'],['osservazioni','Osservazioni ('+O.length+')'],['report','Report ('+R.length+')'],['storico','Storico']].map(function(t){
+  +'<div class="tabs">'+[['overview','Overview'],['osservazioni','Osservazioni ('+O.length+')'],['report','Report ('+R.length+')'],['note','Note & Tag'],['storico','Storico']].map(function(t){
     return '<button data-ptab="'+t[0]+'" class="'+(tab===t[0]?'on':'')+'">'+t[1]+'</button>';
   }).join('')+'</div>'+body;
 }
@@ -619,6 +654,26 @@ function bindPlayer(id){
   document.querySelectorAll('[data-openob]').forEach(function(el){
     el.addEventListener('click',function(){openObservation(+el.getAttribute('data-openob'))});
   });
+  /* note & tag tab */
+  if(document.getElementById('pnSave')){
+    document.getElementById('pnSave').addEventListener('click',function(){
+      var txt=document.getElementById('pnText').value.trim();
+      dbSet('pn_'+id,txt?txt.split(/\n\n+/):[]);
+      toast('Note salvate');
+    });
+    document.querySelectorAll('[data-tag]').forEach(function(t){
+      t.addEventListener('click',function(){
+        if(!canEdit()){toast('Profilo in sola lettura');return}
+        var tag=t.getAttribute('data-tag');
+        var P=dbGet('players',[]),p=P.find(function(x){return String(x.id)===String(id)});
+        p.tags=p.tags||[];
+        var i=p.tags.indexOf(tag);
+        if(i>-1)p.tags.splice(i,1);else p.tags.push(tag);
+        dbSet('players',P);
+        rerender();
+      });
+    });
+  }
 }
 
 /* ---------- OSSERVAZIONI ---------- */
@@ -874,7 +929,10 @@ function vReport(id){
     +'<span class="tag '+(r.raccomandazione==='Shortlist'||r.raccomandazione==='Raccomandato'?'green':'gold')+'" style="font-size:13px;padding:5px 14px">Raccomandazione: '+esc(r.raccomandazione)+'</span>'
     +'<span style="margin-left:10px">Valutazione: <b>'+r.val+'/10</b></span></div>'
     +'</div>'
-    +(r.stato==='Revisione'&&canReview?'<div style="margin-top:12px;display:flex;gap:8px"><button class="btn" id="rpApprove2">Approva report</button><button class="btn danger" id="rpRequestChanges">Richiedi modifiche</button></div>':'');
+    +(r.stato==='Revisione'&&canReview?'<div style="margin-top:12px;display:flex;gap:8px"><button class="btn" id="rpApprove2">Approva report</button><button class="btn danger" id="rpRequestChanges">Richiedi modifiche</button></div>':'')
+    +'<div class="card" style="margin-top:14px"><div class="hd"><h2>Commenti revisione</h2></div><div id="rpCmts">'+vReportComments(id)+'</div>'
+    +(canEdit()?'<div style="display:flex;gap:8px;padding:12px 16px"><input id="rpCmtTxt" placeholder="Scrivi un commento per la revisione…" style="flex:1"><button class="btn sm" id="rpCmtAdd">Invia</button></div>':'')
+    +'</div>';
   }
   var rows=R.filter(function(r){return !rf.stato||r.stato===rf.stato}).sort(function(a,b){return a.data<b.data?1:-1}).map(function(r){
     var p=P.find(function(x){return x.id===r.player})||{};
@@ -916,6 +974,18 @@ function bindReport(id){
   if(rc)rc.addEventListener('click',function(){
     var R=dbGet('reports',[]),r=R.find(function(x){return String(x.id)===String(id)});
     r.stato='Bozza';dbSet('reports',R);toast('Modifiche richieste — report tornato in bozza');rerender();
+  });
+  var ca=document.getElementById('rpCmtAdd');
+  if(ca)ca.addEventListener('click',function(){
+    var t=document.getElementById('rpCmtTxt').value.trim();
+    if(!t)return;
+    var cs=reportComments(id);
+    cs.push({autore:ME.nome,quando:new Date().toLocaleDateString('it-IT'),testo:t});
+    dbSet('rc_'+id,cs);
+    var R2=dbGet('reports',[]),r2=R2.find(function(x){return String(x.id)===String(id)});
+    var p2=dbGet('players',[]).find(function(x){return x.id===r2.player});
+    notify('Nuovo commento sul report di '+p2.cognome,'Commento');
+    rerender();
   });
 }
 function vReportNew(id){
@@ -1032,7 +1102,135 @@ function vAnalytics(){
   +'</div></div></div>';
 }
 
-/* ---------- RICERCA GLOBALE ---------- */
+/* ---------- CONFRONTO ---------- */
+var cfSel=[];
+function vConfronta(){
+  var P=dbGet('players',[]);
+  var sel=P.filter(function(p){return cfSel.indexOf(p.id)>-1}).slice(0,4);
+  function avg(p){
+    var O=dbGet('observations',[]).filter(function(o){return o.player===p.id&&o.sc});
+    if(!O.length)return null;
+    var t=0,n=0;['tecnica','tattica','fisico','mentalita'].forEach(function(k){O.forEach(function(o){if(o.sc[k]){t+=o.sc[k];n++}})});
+    return n?{score:+(t/n).toFixed(1),n:O.length}:null;
+  }
+  var head='<div class="card"><div class="hd"><h2>Seleziona fino a 4 giocatori</h2><span class="sp"></span>'+(sel.length>=2?'<button class="btn sm ghost" id="cfClear">Azzera</button>':'')+'</div><div class="tbl-wrap">'
+  +'<table class="cmpradio"><thead><tr><th></th><th>Giocatore</th><th>Ruolo</th><th>Club</th><th>Oss.</th><th>Score</th><th>Ultima osservazione</th></tr></thead><tbody>'
+  +P.map(function(p){
+    var a=avg(p);
+    var O=dbGet('observations',[]).filter(function(o){return o.player===p.id}).sort(function(x,y){return x.data<y.data?1:-1})[0];
+    return '<tr class="rowlink" data-cf="'+p.id+'"><td><input type="checkbox"'+(cfSel.indexOf(p.id)>-1?' checked':'')+' aria-label="Seleziona '+esc(p.cognome)+'"></td>'
+    +'<td><b>'+esc(p.cognome)+' '+esc(p.nome)+'</b></td><td>'+esc(p.ruolo)+'</td><td>'+esc(p.club)+'</td>'
+    +'<td class="nw">'+(a?a.n:0)+'</td><td>'+(a?'<span class="score-pill '+scoreClass(a.score)+'">'+a.score+'</span>':'<span class="tag">N.V.</span>')+'</td>'
+    +'<td class="nw">'+(O?fmtD(O.data):'—')+'</td></tr>';
+  }).join('')+'</tbody></table></div></div>';
+  if(sel.length<2){
+    return pagehead('Comparazione','Confronta giocatori','','Seleziona da 2 a 4 giocatori dalla tabella: radar e attributi affiancati, con numero di osservazioni per pesare i giudizi.')
+    +head;
+  }
+  var radarSets=sel.map(function(p,i){
+    var O=dbGet('observations',[]).filter(function(o){return o.player===p.id&&o.sc});
+    var A={tecnica:0,tattica:0,fisico:0,mentalita:0};
+    if(O.length){['tecnica','tattica','fisico','mentalita'].forEach(function(k){var s=0,n=0;O.forEach(function(o){if(o.sc[k]){s+=o.sc[k];n++}});if(n)A[k]=+(s/n).toFixed(1)})}
+    return {p:p,A:A,color:['#1a5cb0','#c7920e','#2e7d43','#b3402f'][i]};
+  });
+  var rows=[['Club',function(p){return esc(p.club)}],['Ruolo',function(p){return esc(p.ruolo)+(p.sottoruolo?' · '+p.sottoruolo:'')}],
+    ['Età',function(p){return age(p.nascita)}],['Piede',function(p){return esc(p.piede)}],['Altezza',function(p){return p.altezza?p.altezza+' m':'—'}],
+    ['Stato',function(p){return esc(p.stato)}],['Potenziale',function(p){return p.potenziale?p.potenziale+'/10':'—'}],
+    ['Osservazioni',function(p){var a=avg(p);return a?a.n:0}],
+    ['Score complessivo',function(p){var a=avg(p);return a?'<span class="score-pill '+scoreClass(a.score)+'">'+a.score+'</span>':'<span class="tag">N.V.</span>'}],
+    ['Tecnica',function(p){var A=radarSets.find(function(r){return r.p.id===p.id}).A;return A.tecnica||'N.V.'}],
+    ['Tattica',function(p){var A=radarSets.find(function(r){return r.p.id===p.id}).A;return A.tattica||'N.V.'}],
+    ['Fisico',function(p){var A=radarSets.find(function(r){return r.p.id===p.id}).A;return A.fisico||'N.V.'}],
+    ['Mentalità',function(p){var A=radarSets.find(function(r){return r.p.id===p.id}).A;return A.mentalita||'N.V.'}]];
+  return pagehead('Comparazione','Confronta '+sel.length+' giocatori','','Dati affiancati. Attenzione: score basati su poche osservazioni sono meno affidabili — confronta anche il numero di rilevazioni.')
+  +head
+  +'<div class="card" style="margin-top:14px"><div class="hd"><h2>Radar comparativo</h2></div><div class="radar-wrap">'+multiRadar(radarSets)+'</div></div>'
+  +'<div class="card" style="margin-top:14px"><div class="tbl-wrap"><table><thead><tr><th>Attributo</th>'+sel.map(function(p){return '<th>'+esc(p.cognome)+'</th>'}).join('')+'</tr></thead><tbody>'
+  +rows.map(function(r){return '<tr><td style="font-weight:700">'+r[0]+'</td>'+sel.map(function(p){return '<td>'+r[1](p)+'</td>'}).join('')+'</tr>'}).join('')
+  +'</tbody></table></div></div>';
+}
+function multiRadar(sets){
+  var axes=['tecnica','tattica','fisico','mentalita'];
+  var labels=['Tecnica','Tattica','Fisico','Ment.'];
+  var cx=140,cy=115,R=80;
+  var rings=[0.25,0.5,0.75,1].map(function(f){
+    var rp=axes.map(function(ax,i){var ang=-Math.PI/2+i*2*Math.PI/4;return (cx+R*f*Math.cos(ang)).toFixed(1)+','+(cy+R*f*Math.sin(ang)).toFixed(1)}).join(' ');
+    return '<polygon points="'+rp+'" fill="none" stroke="var(--line)"/>';
+  }).join('');
+  var polys=sets.map(function(s){
+    var pts=axes.map(function(ax,i){
+      var ang=-Math.PI/2+i*2*Math.PI/4,r=R*(s.A[ax]||0)/10;
+      return (cx+r*Math.cos(ang)).toFixed(1)+','+(cy+r*Math.sin(ang)).toFixed(1);
+    }).join(' ');
+    return '<polygon points="'+pts+'" fill="'+s.color+'22" stroke="'+s.color+'" stroke-width="2"/>';
+  }).join('');
+  var lbl=labels.map(function(l,i){
+    var ang=-Math.PI/2+i*2*Math.PI/4;
+    return '<text x="'+(cx+(R+18)*Math.cos(ang)).toFixed(1)+'" y="'+(cy+(R+18)*Math.sin(ang)).toFixed(1)+'" text-anchor="middle" dominant-baseline="middle" font-size="11.5" font-weight="600" fill="var(--muted)">'+l+'</text>';
+  }).join('');
+  var legend=sets.map(function(s){return '<span style="display:inline-flex;align-items:center;gap:6px;margin:0 10px;font-size:12.5px;font-weight:600"><i style="width:11px;height:11px;border-radius:3px;background:'+s.color+';display:inline-block"></i>'+esc(s.p.cognome)+'</span>'}).join('');
+  return '<svg width="280" height="230" viewBox="0 0 280 230">'+rings+polys+lbl+'</svg><div style="text-align:center;padding-bottom:10px">'+legend+'</div>';
+}
+function bindConfronta(){
+  document.querySelectorAll('[data-cf]').forEach(function(tr){
+    tr.addEventListener('click',function(e){
+      if(e.target.tagName==='INPUT')e.target.checked=!e.target.checked;
+      var id=+tr.getAttribute('data-cf');
+      var i=cfSel.indexOf(id);
+      if(i>-1)cfSel.splice(i,1);
+      else{if(cfSel.length>=4){toast('Massimo 4 giocatori');return}cfSel.push(id)}
+      rerender();
+    });
+  });
+  var c=document.getElementById('cfClear');
+  if(c)c.addEventListener('click',function(){cfSel=[];rerender()});
+}
+
+/* ---------- CALENDARIO ---------- */
+var calCur=new Date();
+function vCalendario(){
+  var M=dbGet('matches',[]),S=dbGet('scouts',[]);
+  var y=calCur.getFullYear(),mo=calCur.getMonth();
+  var first=new Date(y,mo,1),start=(first.getDay()+6)%7; /* lunedì=0 */
+  var dim=new Date(y,mo+1,0).getDate();
+  var monthNames=['Gennaio','Febbraio','Marzo','Aprile','Maggio','Giugno','Luglio','Agosto','Settembre','Ottobre','Novembre','Dicembre'];
+  var cells='';
+  for(var i=0;i<start;i++)cells+='<div class="day out"></div>';
+  var todayIso=new Date().toISOString().slice(0,10);
+  for(var d=1;d<=dim;d++){
+    var iso=y+'-'+String(mo+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');
+    var evs=M.filter(function(m){return m.data===iso});
+    cells+='<div class="day'+(iso===todayIso?' today':'')+'"><b>'+d+'</b>'
+    +evs.map(function(m){
+      return '<span class="ev'+(m.stato==='Completata'?' done':'')+'" data-go="#partite/'+m.id+'" title="'+esc(m.home+' v '+m.away)+'">'+esc((S.find(function(s){return s.id===m.scout})||{}).nome||'').split(' ')[0]+' · '+esc(m.home.slice(0,10))+'</span>';
+    }).join('')+'</div>';
+  }
+  var upcoming=M.filter(function(m){return m.data>=todayIso}).sort(function(a,b){return a.data<b.data?-1:1}).slice(0,5);
+  return pagehead('Programmazione','Calendario','<div class="calnav"><button class="btn ghost sm" id="calPrev">←</button><b>'+monthNames[mo]+' '+y+'</b><button class="btn ghost sm" id="calNext">→</button></div>','Partite, scout assegnati e target: la vista mese del lavoro del reparto.')
+  +'<div class="card" style="padding:12px"><div class="cal">'
+  +['Lun','Mar','Mer','Gio','Ven','Sab','Dom'].map(function(x){return '<div class="calh">'+x+'</div>'}).join('')
+  +cells+'</div></div>'
+  +'<div class="card" style="margin-top:14px"><div class="hd"><h2>Prossime in agenda</h2></div>'
+  +tbl('<th>Data</th><th>Partita</th><th>Competizione</th><th>Scout</th><th>Target</th>',upcoming.map(function(m){
+    return '<tr class="rowlink" data-go="#partite/'+m.id+'"><td class="nw">'+fmtD(m.data)+' '+m.ora+'</td><td><b>'+esc(m.home)+'</b> – '+esc(m.away)+'</td><td>'+esc(m.comp)+'</td><td>'+esc((S.find(function(s){return s.id===m.scout})||{}).nome||'—')+'</td><td><span class="tag blue">'+esc(m.target||'—')+'</span></td></tr>';
+  }))+'</div>';
+}
+function bindCalendario(){
+  var p=document.getElementById('calPrev'),n=document.getElementById('calNext');
+  if(p)p.addEventListener('click',function(){calCur=new Date(calCur.getFullYear(),calCur.getMonth()-1,1);rerender()});
+  if(n)n.addEventListener('click',function(){calCur=new Date(calCur.getFullYear(),calCur.getMonth()+1,1);rerender()});
+}
+
+/* ---------- COMMENTI REPORT (fase 2) ---------- */
+function reportComments(rid){
+  return dbGet('rc_'+rid,[]);
+}
+function vReportComments(rid){
+  var cs=reportComments(rid);
+  if(!cs.length)return '<div class="empty">Nessun commento: la revisione parte da qui.</div>';
+  return cs.map(function(c){return '<div class="cmt"><b>'+esc(c.autore)+'</b> <small>'+esc(c.quando)+'</small><p>'+esc(c.testo)+'</p></div>'}).join('');
+}
+
 function bindSearch(){
   var inp=document.getElementById('gsInput'),res=document.getElementById('gsResults');
   inp.addEventListener('input',function(){
@@ -1072,6 +1270,8 @@ function rerender(){
     case 'partite':html=vPartite(n.id);break;
     case 'partite-new':html=vMatchNew();break;
     case 'shortlist':html=vShortlist();break;
+    case 'calendario':html=vCalendario();break;
+    case 'confronta':html=vConfronta();break;
     case 'report':html=vReport(n.id);break;
     case 'report-new':html=vReportNew(n.id);break;
     case 'squadre':html=vSquadre();break;
@@ -1093,6 +1293,8 @@ function rerender(){
   if(n.view==='partite')bindPartite();
   if(n.view==='partite-new')bindMatchNew();
   if(n.view==='shortlist')bindShortlist();
+  if(n.view==='calendario')bindCalendario();
+  if(n.view==='confronta')bindConfronta();
   if(n.view==='report'||(n.view==='report'&&n.id))bindReport(n.id);
   if(n.view==='report-new')bindReportNew();
   if(n.view==='team')bindTeam();
